@@ -75,9 +75,11 @@ onStart();
 
 // Function to create the popup window
 function openPopupWindow() {
+  //TODO is already open?
+
   chrome.windows.create(
     {
-      url: chrome.runtime.getURL('popup.html'), // Adjust the URL to your popup file
+      url: chrome.runtime.getURL('popup/index.html'), // Adjust the URL to your popup file
       type: 'popup',
       width: 400,
       height: 600,
@@ -93,7 +95,13 @@ function openPopupWindow() {
 }
 
 // Methods that should trigger the popup
-const POPUP_METHODS = ['signing', 'anotherMethod', 'yetAnotherMethod'];
+const POPUP_METHODS = [
+  'eth_signTypedData',
+  'eth_signTypedData_v4',
+  'eth_signTypedData_v3',
+  'eth_sign',
+  'eth_sendTransaction',
+];
 
 // Listen for messages from the content script
 chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: any) => {
@@ -110,9 +118,9 @@ chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: a
 
     // Check if the method is one of the specific methods that should trigger the popup
     // eslint-disable-next-line no-constant-condition
-    // if (POPUP_METHODS.includes(method) || true) {
-    //   openPopupWindow();
-    // }
+    if (POPUP_METHODS.includes(method)) {
+      openPopupWindow();
+    }
 
     handleEthereumRequest(method, params, provider, KEEPKEY_SDK, ADDRESS)
       .then(result => {
