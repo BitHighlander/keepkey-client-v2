@@ -20,6 +20,10 @@
   "dependencies": {
     "@chrome-extension-boilerplate/shared": "workspace:*",
     "@chrome-extension-boilerplate/storage": "workspace:*",
+    "@coinmasters/types": "^4.7.41",
+    "@coinmasters/wallet-keepkey": "^13.0.41",
+    "@pioneer-platform/helpers": "^4.0.10",
+    "@pioneer-platform/pioneer-coins": "^9.2.23",
     "ethers": "^6.13.1",
     "webextension-polyfill": "^0.12.0"
   },
