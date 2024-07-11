@@ -1,7 +1,7 @@
 (function () {
   const TAG = ' | InjectedScript | ';
   const VERSION = '1.0.1';
-  console.log('**** Pioneer Injection script ****: ', VERSION);
+  console.log('**** KeepKey Injection script ****: ', VERSION);
 
   async function ethereumRequest(method, params = []) {
     let tag = TAG + ' | ethereumRequest | ';
@@ -93,10 +93,10 @@
     const proxyEthereum = new Proxy(ethereum, handler);
 
     const info = {
-      uuid: '350670db-19fa-4704-a166-e52e178b59d2',
-      name: 'Pioneer Wallet',
-      icon: 'https://pioneers.dev/coins/pioneerMan.png',
-      rdns: 'dev.pioneers',
+      uuid: '350670db-19fa-4704-a166-e52e178b59d3',
+      name: 'KeepKey Client',
+      icon: 'https://pioneers.dev/coins/keepkey.png',
+      rdns: 'com.keepkey',
     };
 
     const announceEvent = new CustomEvent('eip6963:announceProvider', {
