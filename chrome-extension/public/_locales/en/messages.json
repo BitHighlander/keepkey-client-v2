@@ -1,0 +1,10 @@
+{
+  "extensionDescription": {
+    "description": "Extension description",
+    "message": "Managing your KeepKey"
+  },
+  "extensionName": {
+    "description": "Extension name",
+    "message": "KeepKey Client"
+  }
+}
