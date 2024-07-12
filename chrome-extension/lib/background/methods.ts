@@ -1,4 +1,123 @@
 import { JsonRpcProvider } from 'ethers';
+const TAG = ' | METHODS | ';
+interface ProviderRpcError extends Error {
+  code: number;
+  data?: unknown;
+}
+
+const createProviderRpcError = (code: number, message: string, data?: unknown): ProviderRpcError => {
+  const error = new Error(message) as ProviderRpcError;
+  error.code = code;
+  if (data) error.data = data;
+  return error;
+};
+
+let isPopupOpen = false; // Flag to track popup state
+
+const requireApproval = function (method: string, params: any, KEEPKEY_SDK: any) {
+  if (isPopupOpen) {
+    console.log('Popup is already in the process of being opened.');
+    return;
+  }
+  isPopupOpen = true;
+  // First, check if the popup is already open
+  chrome.windows.getAll({ windowTypes: ['popup'] }, windows => {
+    for (const win of windows) {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-expect-error
+      if (win.tabs && win.tabs[0].url.includes('popup/index.html')) {
+        console.log('Popup is already open, focusing on it.');
+        chrome.windows.update(win.id, { focused: true });
+        chrome.runtime.sendMessage({ action: 'eth_sign', request: params });
+        isPopupOpen = false;
+        return;
+      }
+    }
+
+    // If the popup is not open, create a new one
+    chrome.windows.create(
+      {
+        url: chrome.runtime.getURL('popup/index.html'), // Adjust the URL to your popup file
+        type: 'popup',
+        width: 400,
+        height: 600,
+      },
+      window => {
+        if (chrome.runtime.lastError) {
+          console.error('Error creating popup:', chrome.runtime.lastError);
+          isPopupOpen = false;
+        } else {
+          console.log('Popup window created:', window);
+          // Add event listener for popup close
+          chrome.windows.onRemoved.addListener(function popupCloseListener(windowId) {
+            if (window.id === windowId) {
+              isPopupOpen = false;
+              chrome.windows.onRemoved.removeListener(popupCloseListener);
+            }
+          });
+          // Send the sign request message to the newly created popup
+          chrome.runtime.sendMessage({ action: method, request: params });
+        }
+      },
+    );
+  });
+};
+
+//locked
+const requireUnlock = function (method: string, params: any, KEEPKEY_SDK: any) {
+  const tag = TAG + ' | requireUnlock | ';
+  if (isPopupOpen) {
+    console.log('Popup is already in the process of being opened.');
+    return;
+  }
+  isPopupOpen = true;
+  try {
+    // First, check if the popup is already open
+    chrome.windows.getAll({ windowTypes: ['popup'] }, windows => {
+      for (const win of windows) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        //@ts-expect-error
+        if (win.tabs && win.tabs[0].url.includes('popup/index.html')) {
+          console.log(tag, 'Popup is already open, focusing on it.');
+          chrome.windows.update(win.id, { focused: true });
+          chrome.runtime.sendMessage({ action: 'unlock', request: params });
+          isPopupOpen = false;
+          return;
+        }
+      }
+
+      // If the popup is not open, create a new one
+      chrome.windows.create(
+        {
+          url: chrome.runtime.getURL('popup/index.html'), // Adjust the URL to your popup file
+          type: 'popup',
+          width: 400,
+          height: 600,
+        },
+        window => {
+          if (chrome.runtime.lastError) {
+            console.error(tag, 'Error creating popup:', chrome.runtime.lastError);
+            isPopupOpen = false;
+          } else {
+            console.log(tag, 'Popup window created:', window);
+            // Add event listener for popup close
+            chrome.windows.onRemoved.addListener(function popupCloseListener(windowId) {
+              if (window.id === windowId) {
+                isPopupOpen = false;
+                chrome.windows.onRemoved.removeListener(popupCloseListener);
+              }
+            });
+            // Send the unlock request message to the newly created popup
+            chrome.runtime.sendMessage({ action: 'unlock', request: params });
+          }
+        },
+      );
+    });
+  } catch (e) {
+    console.error(e);
+    isPopupOpen = false;
+  }
+};
 
 export const handleEthereumRequest = async (
   method: string,
@@ -8,10 +127,11 @@ export const handleEthereumRequest = async (
   ADDRESS: string,
 ): Promise<any> => {
   const tag = 'ETH_MOCK | handleEthereumRequest | ';
-  console.log(tag, 'method:', method);
-  console.log(tag, 'params:', params);
-
   try {
+    if (!ADDRESS) {
+      console.log('Device is not paired!');
+      await requireUnlock(method, params, KEEPKEY_SDK);
+    }
     switch (method) {
       case 'eth_chainId':
         console.log(tag, 'Returning eth_chainId:', '0x1');
@@ -42,13 +162,11 @@ export const handleEthereumRequest = async (
         return await provider.estimateGas(params[0]);
       case 'eth_gasPrice':
         console.log(tag, 'Calling eth_gasPrice');
-        return {};
-      // return await provider.getGasPrice();
+        return await provider.getGasPrice();
       case 'wallet_addEthereumChain':
       case 'wallet_switchEthereumChain':
       case 'wallet_watchAsset':
         console.log(tag, method + ' Returning true');
-        // TODO: Implement network change handling if needed
         return true;
       case 'wallet_getPermissions':
       case 'wallet_requestPermissions':
@@ -60,11 +178,29 @@ export const handleEthereumRequest = async (
         console.log(tag, 'Returning eth_requestAccounts:', [ADDRESS]);
         return [ADDRESS];
       case 'eth_sign':
+        // eslint-disable-next-line no-case-declarations
+        const userApprovedEthSign = await requireApproval(method, params[0], KEEPKEY_SDK);
         console.log(tag, 'Calling signMessage with:', params[1]);
-        return await signMessage(params[1], KEEPKEY_SDK);
+        if (userApprovedEthSign) {
+          return sendTransaction(params, provider, KEEPKEY_SDK, ADDRESS);
+        } else {
+          return {
+            code: 4001,
+            message: 'User rejected the transaction',
+          };
+        }
       case 'eth_sendTransaction':
+        // eslint-disable-next-line no-case-declarations
+        const userApproved = await requireApproval(method, params[0], KEEPKEY_SDK);
         console.log(tag, 'Calling sendTransaction with:', params[0]);
-        return sendTransaction(params, provider, KEEPKEY_SDK, ADDRESS);
+        if (userApproved) {
+          return sendTransaction(params, provider, KEEPKEY_SDK, ADDRESS);
+        } else {
+          return {
+            code: 4001,
+            message: 'User rejected the transaction',
+          };
+        }
       case 'eth_signTransaction':
         console.log(tag, 'Calling signTransaction with:', params[0]);
         return await signTransaction(params[0], provider, KEEPKEY_SDK);
@@ -82,23 +218,23 @@ export const handleEthereumRequest = async (
             return msg;
           }, {}),
         };
-        //TODO does ADDRESS = params[0]?
         return await signTypedData(typedData, KEEPKEY_SDK, ADDRESS);
       case 'eth_signTypedData_v4':
+        throw createProviderRpcError(4200, 'Method eth_signTypedData_v4 not supported');
       case 'eth_signTypedData_v3':
-        /*
-          params[0] = address
-          params[1] = typedData (as string)
-        */
-        //TODO: Does ADDRESS = params[0]?
         return await signTypedData(params[1], KEEPKEY_SDK, ADDRESS);
       default:
         console.log(tag, `Method ${method} not supported`);
-        throw new Error(`Method ${method} not supported`);
+        throw createProviderRpcError(4200, `Method ${method} not supported`);
     }
   } catch (error) {
     console.error(tag, `Error processing method ${method}:`, error);
-    throw error;
+
+    if (error.code && error.message) {
+      throw error;
+    } else {
+      throw createProviderRpcError(4000, `Unexpected error processing method ${method}`, error);
+    }
   }
 };
 
@@ -106,7 +242,6 @@ const signMessage = async (message: any, KEEPKEY_SDK: any) => {
   try {
     console.log('signMessage: ', message);
     console.log('KEEPKEY_SDK.ETH.walletMethods: ', KEEPKEY_SDK.ETH.walletMethods);
-
     const address = KEEPKEY_SDK.ETH.wallet.address;
     const messageFormatted = `0x${Buffer.from(
       Uint8Array.from(typeof message === 'string' ? new TextEncoder().encode(message) : message),
@@ -114,7 +249,7 @@ const signMessage = async (message: any, KEEPKEY_SDK: any) => {
     return KEEPKEY_SDK.eth.ethSign({ address, message: messageFormatted });
   } catch (e) {
     console.error(e);
-    throw e;
+    throw createProviderRpcError(4000, 'Error signing message', e);
   }
 };
 
@@ -123,9 +258,9 @@ const signTransaction = async (transaction: any, provider: JsonRpcProvider, KEEP
   try {
     console.log(tag, '**** transaction: ', transaction);
 
-    if (!transaction.from) throw Error('invalid tx missing from');
-    if (!transaction.to) throw Error('invalid tx missing to');
-    if (!transaction.chainId) throw Error('invalid tx missing chainId');
+    if (!transaction.from) throw createProviderRpcError(4000, 'Invalid transaction: missing from');
+    if (!transaction.to) throw createProviderRpcError(4000, 'Invalid transaction: missing to');
+    if (!transaction.chainId) throw createProviderRpcError(4000, 'Invalid transaction: missing chainId');
 
     const nonce = await provider.getTransactionCount(transaction.from, 'pending');
     transaction.nonce = `0x${nonce.toString(16)}`;
@@ -171,7 +306,7 @@ const signTransaction = async (transaction: any, provider: JsonRpcProvider, KEEP
     return output.serialized;
   } catch (e) {
     console.error(`${tag} Error: `, e);
-    throw e;
+    throw createProviderRpcError(4000, 'Error signing transaction', e);
   }
 };
 
@@ -194,7 +329,7 @@ const signTypedData = async (params: any, KEEPKEY_SDK: any, ADDRESS: string) => 
     return signedMessage;
   } catch (e) {
     console.error(`${tag} Error: `, e);
-    throw e;
+    throw createProviderRpcError(4000, 'Error signing typed data', e);
   }
 };
 
@@ -206,7 +341,7 @@ const broadcastTransaction = async (signedTx: string, networkId: string, provide
     return receipt;
   } catch (e) {
     console.error(e);
-    throw e;
+    throw createProviderRpcError(4000, 'Error broadcasting transaction', e);
   }
 };
 
@@ -225,19 +360,16 @@ const sendTransaction = async (transaction: any, provider: JsonRpcProvider, KEEP
       const signedTx = await signTransaction(params, provider, KEEPKEY_SDK);
       console.log(tag, 'signedTx:', signedTx);
 
-      // TODO: broadcast transaction
-
-      const result = '0x1234567890abcdef';
+      const result = await broadcastTransaction(signedTx, chainId, provider);
       return result;
     } else if (userResponse.decision === 'reject') {
       console.log(tag, 'User rejected the request');
-      throw new Error('User rejected the transaction');
+      throw createProviderRpcError(4001, 'User rejected the transaction');
     }
 
-    // Return a default value or handle unexpected cases
-    throw new Error('Unexpected user decision');
+    throw createProviderRpcError(4000, 'Unexpected user decision');
   } catch (e) {
     console.error(e);
-    throw e;
+    throw createProviderRpcError(4000, 'Error sending transaction', e);
   }
 };
