@@ -1,17 +1,38 @@
 (function () {
   const TAG = ' | InjectedScript | ';
-  const VERSION = '1.0.1';
+  const VERSION = '1.0.2';
   console.log('**** KeepKey Injection script ****: ', VERSION);
+  const SITE_URL = window.location.href; // Add the site URL
+  const SOURCE_INFO = {
+    siteUrl: SITE_URL,
+    scriptSource: 'KeepKey Extension', // Provide a description or name of the source
+    version: VERSION,
+    injectedTime: new Date().toISOString(), // Record the time when the script is injected
+  };
+  console.log('SOURCE_INFO: ', SOURCE_INFO);
 
   async function ethereumRequest(method, params = []) {
     let tag = TAG + ' | ethereumRequest | ';
     try {
+      const requestInfo = {
+        method,
+        params,
+        siteUrl: SOURCE_INFO.siteUrl,
+        scriptSource: SOURCE_INFO.scriptSource,
+        version: SOURCE_INFO.version,
+        requestTime: new Date().toISOString(),
+        referrer: document.referrer, // Include document.referrer
+        href: window.location.href, // Include the current page URL
+        userAgent: navigator.userAgent, // Include the user agent
+        platform: navigator.platform, // Include the platform
+        language: navigator.language, // Include the language
+      };
       console.log(tag, 'method:', method);
       console.log(tag, 'params:', params);
 
       return await new Promise((resolve, reject) => {
         // Send the request to the content script
-        window.postMessage({ type: 'ETH_REQUEST', method, params, tag: TAG }, '*');
+        window.postMessage({ type: 'ETH_REQUEST', method, params, requestInfo, tag: TAG }, '*');
 
         // Listen for the response from the content script
         function handleMessage(event) {
@@ -53,6 +74,7 @@
     const tag = TAG + ' | mountEthereum | ';
     const ethereum = {
       isMetaMask: true,
+      isKeepKey: true,
       request: async ({ method, params }) => {
         console.log(tag, 'ethereum.request called with:', method, params);
         return ethereumRequest(method, params);

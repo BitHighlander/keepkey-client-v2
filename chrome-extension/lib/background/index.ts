@@ -84,12 +84,13 @@ chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: a
 
   if (message.type === 'ETH_REQUEST') {
     console.log(tag, 'Background script received ETH_REQUEST:', message);
-    const { method, params } = message;
+    const { method, params, requestInfo } = message;
+    console.log(tag, 'requestInfo:', requestInfo);
     console.log(tag, 'method:', method);
     console.log(tag, 'params:', params);
     console.log(tag, 'ADDRESS:', ADDRESS);
 
-    handleEthereumRequest(method, params, provider, KEEPKEY_SDK, ADDRESS)
+    handleEthereumRequest(requestInfo, method, params, provider, KEEPKEY_SDK, ADDRESS)
       .then(result => {
         sendResponse(result);
       })

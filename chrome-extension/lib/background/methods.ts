@@ -2,6 +2,8 @@ import { JsonRpcProvider } from 'ethers';
 const TAG = ' | METHODS | ';
 import { keepKeyEventsStorage } from '@chrome-extension-boilerplate/storage'; // Import both storages
 
+const DOMAIN_WHITE_LIST = [];
+
 interface ProviderRpcError extends Error {
   code: number;
   data?: unknown;
@@ -15,6 +17,31 @@ const createProviderRpcError = (code: number, message: string, data?: unknown): 
 };
 
 let isPopupOpen = false; // Flag to track popup state
+
+const openPopup = function () {
+  const tag = TAG + ' | openPopup | ';
+  try {
+    console.log(tag, 'Opening popup');
+    chrome.windows.create(
+      {
+        url: chrome.runtime.getURL('popup/index.html'), // Adjust the URL to your popup file
+        type: 'popup',
+        width: 400,
+        height: 600,
+      },
+      window => {
+        if (chrome.runtime.lastError) {
+          console.error('Error creating popup:', chrome.runtime.lastError);
+          isPopupOpen = false;
+        } else {
+          console.log('Popup window created:', window);
+        }
+      },
+    );
+  } catch (e) {
+    console.error(tag, e);
+  }
+};
 
 const requireApproval = function (method: string, params: any, KEEPKEY_SDK: any) {
   if (isPopupOpen) {
@@ -67,56 +94,11 @@ const requireApproval = function (method: string, params: any, KEEPKEY_SDK: any)
 };
 
 //locked
-const requireUnlock = function (method: string, params: any, KEEPKEY_SDK: any) {
+const requireUnlock = function (requestInfo: any, method: string, params: any, KEEPKEY_SDK: any) {
   const tag = TAG + ' | requireUnlock | ';
-  if (isPopupOpen) {
-    console.log('Popup is already in the process of being opened.');
-    return;
-  }
-  isPopupOpen = true;
   try {
-    keepKeyEventsStorage.addEvent({ type: method, request: params });
-    // First, check if the popup is already open
-    chrome.windows.getAll({ windowTypes: ['popup'] }, windows => {
-      for (const win of windows) {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        //@ts-expect-error
-        if (win.tabs && win.tabs[0].url.includes('popup/index.html')) {
-          console.log(tag, 'Popup is already open, focusing on it.');
-          chrome.windows.update(win.id, { focused: true });
-          chrome.runtime.sendMessage({ action: 'unlock', request: params });
-          isPopupOpen = false;
-          return;
-        }
-      }
-
-      // If the popup is not open, create a new one
-      chrome.windows.create(
-        {
-          url: chrome.runtime.getURL('popup/index.html'), // Adjust the URL to your popup file
-          type: 'popup',
-          width: 400,
-          height: 600,
-        },
-        window => {
-          if (chrome.runtime.lastError) {
-            console.error(tag, 'Error creating popup:', chrome.runtime.lastError);
-            isPopupOpen = false;
-          } else {
-            console.log(tag, 'Popup window created:', window);
-            // Add event listener for popup close
-            chrome.windows.onRemoved.addListener(function popupCloseListener(windowId) {
-              if (window.id === windowId) {
-                isPopupOpen = false;
-                chrome.windows.onRemoved.removeListener(popupCloseListener);
-              }
-            });
-            // Send the request message to the newly created popup
-            chrome.runtime.sendMessage({ action: method, request: params });
-          }
-        },
-      );
-    });
+    console.log(tag, 'requireUnlock for domain');
+    openPopup();
   } catch (e) {
     console.error(e);
     isPopupOpen = false;
@@ -124,6 +106,7 @@ const requireUnlock = function (method: string, params: any, KEEPKEY_SDK: any) {
 };
 
 export const handleEthereumRequest = async (
+  requestInfo: any,
   method: string,
   params: any[],
   provider: JsonRpcProvider,
@@ -132,9 +115,15 @@ export const handleEthereumRequest = async (
 ): Promise<any> => {
   const tag = 'ETH_MOCK | handleEthereumRequest | ';
   try {
+    console.log(tag, 'requestInfo:', requestInfo);
+    if (!requestInfo) throw Error('Can not validate request! refusing to proceed.');
+    if (requestInfo.siteUrl && !DOMAIN_WHITE_LIST.includes(requestInfo.siteUrl)) {
+      console.log('Domain needs approval!');
+      await requireUnlock(requestInfo, method, params, KEEPKEY_SDK);
+    }
     if (!ADDRESS) {
       console.log('Device is not paired!');
-      await requireUnlock(method, params, KEEPKEY_SDK);
+      await requireUnlock(requestInfo, method, params, KEEPKEY_SDK);
     }
     switch (method) {
       case 'eth_chainId':

@@ -13,32 +13,32 @@ const Transaction = ({
 
   return (
     <Card borderRadius="md" p={4} mb={4}>
-      <Heading as="h3" size="md" mb={2}>
-        Uniswap wants to sign a transaction
-      </Heading>
-      <Text mb={2}>https://app.uniswap.org</Text>
-      <Text color="red" mb={4}>
-        Cannot Verify
-      </Text>
+      {/*<Heading as="h3" size="md" mb={2}>*/}
+      {/*  Uniswap wants to sign a transaction*/}
+      {/*</Heading>*/}
+      {/*<Text mb={2}>https://app.uniswap.org</Text>*/}
+      {/*<Text color="red" mb={4}>*/}
+      {/*  Cannot Verify*/}
+      {/*</Text>*/}
 
-      <Text mb={4}>Please select a fee option below:</Text>
-      <Flex mb={4}>
-        <Box mr={4}>
-          <Text>Network Recommended Fee (3 Gwei)</Text>
-        </Box>
-        <Switch defaultChecked />
-      </Flex>
-      <Flex mb={4}>
-        <Box mr={4}>
-          <Text>Custom Fee</Text>
-        </Box>
-        <Switch />
-      </Flex>
+      {/*<Text mb={4}>Please select a fee option below:</Text>*/}
+      {/*<Flex mb={4}>*/}
+      {/*  <Box mr={4}>*/}
+      {/*    <Text>Network Recommended Fee (3 Gwei)</Text>*/}
+      {/*  </Box>*/}
+      {/*  <Switch defaultChecked />*/}
+      {/*</Flex>*/}
+      {/*<Flex mb={4}>*/}
+      {/*  <Box mr={4}>*/}
+      {/*    <Text>Custom Fee</Text>*/}
+      {/*  </Box>*/}
+      {/*  <Switch />*/}
+      {/*</Flex>*/}
 
-      <Text mb={4}>Current Fee: 3 Gwei</Text>
-      <Button colorScheme="green" mb={4}>
-        SUBMIT FEE
-      </Button>
+      {/*<Text mb={4}>Current Fee: 3 Gwei</Text>*/}
+      {/*<Button colorScheme="green" mb={4}>*/}
+      {/*  SUBMIT FEE*/}
+      {/*</Button>*/}
 
       <Box mb={4}>
         <Heading as="h4" size="sm">
@@ -57,9 +57,9 @@ const Transaction = ({
         <Text>Methods: eth_sendTransaction</Text>
       </Box>
 
-      <Text color="red" mb={4}>
-        Unknown domain: This domain cannot be verified. Please check the request carefully before approving.
-      </Text>
+      {/*<Text color="red" mb={4}>*/}
+      {/*  Unknown domain: This domain cannot be verified. Please check the request carefully before approving.*/}
+      {/*</Text>*/}
 
       <Flex>
         <Button colorScheme="green" onClick={() => handleResponse('accept')} mr={2}>
