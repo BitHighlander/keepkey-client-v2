@@ -18,7 +18,7 @@ interface ProviderRpcError extends Error {
   data?: unknown;
 }
 
-const createProviderRpcError = (code: number, message: string, data?: unknown): ProviderRpcError => {
+export const createProviderRpcError = (code: number, message: string, data?: unknown): ProviderRpcError => {
   const error = new Error(message) as ProviderRpcError;
   error.code = code;
   if (data) error.data = data;
@@ -32,20 +32,20 @@ const openPopup = function () {
   try {
     console.log(tag, 'Opening popup');
     chrome.windows.create(
-        {
-          url: chrome.runtime.getURL('popup/index.html'), // Adjust the URL to your popup file
-          type: 'popup',
-          width: 400,
-          height: 600,
-        },
-        window => {
-          if (chrome.runtime.lastError) {
-            console.error('Error creating popup:', chrome.runtime.lastError);
-            isPopupOpen = false;
-          } else {
-            console.log('Popup window created:', window);
-          }
-        },
+      {
+        url: chrome.runtime.getURL('popup/index.html'), // Adjust the URL to your popup file
+        type: 'popup',
+        width: 400,
+        height: 600,
+      },
+      window => {
+        if (chrome.runtime.lastError) {
+          console.error('Error creating popup:', chrome.runtime.lastError);
+          isPopupOpen = false;
+        } else {
+          console.log('Popup window created:', window);
+        }
+      },
     );
   } catch (e) {
     console.error(tag, e);
@@ -61,7 +61,7 @@ const requireApproval = async function (requestInfo: any, method: string, params
       type: method,
       request: params,
       status: 'request',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     const eventSaved = await requestStorage.addEvent(event);
@@ -83,93 +83,31 @@ const requireApproval = async function (requestInfo: any, method: string, params
       }
 
       chrome.windows.create(
-          {
-            url: chrome.runtime.getURL('popup/index.html'),
-            type: 'popup',
-            width: 400,
-            height: 600,
-          },
-          window => {
-            if (chrome.runtime.lastError) {
-              console.error('Error creating popup:', chrome.runtime.lastError);
-              isPopupOpen = false;
-            } else {
-              console.log('Popup window created:', window);
-              chrome.windows.onRemoved.addListener(function popupCloseListener(windowId) {
-                if (window.id === windowId) {
-                  isPopupOpen = false;
-                  chrome.windows.onRemoved.removeListener(popupCloseListener);
-                }
-              });
-            }
+        {
+          url: chrome.runtime.getURL('popup/index.html'),
+          type: 'popup',
+          width: 400,
+          height: 600,
+        },
+        window => {
+          if (chrome.runtime.lastError) {
+            console.error('Error creating popup:', chrome.runtime.lastError);
+            isPopupOpen = false;
+          } else {
+            console.log('Popup window created:', window);
+            chrome.windows.onRemoved.addListener(function popupCloseListener(windowId) {
+              if (window.id === windowId) {
+                isPopupOpen = false;
+                chrome.windows.onRemoved.removeListener(popupCloseListener);
+              }
+            });
           }
+        },
       );
     });
   } catch (e) {
     console.error(tag, e);
   }
-};
-
-const listenForApproval = (KEEPKEY_SDK: any) => {
-  const tag = TAG + ' | listenForApproval | ';
-
-  const processApprovedEvent = async (event: Event) => {
-    try {
-      console.log(tag, 'Processing approved event:', event);
-      const provider = new JsonRpcProvider();
-      const ADDRESS = '0xAddress'; // Replace with the correct address or fetch dynamically
-
-      switch (event.type) {
-        case 'eth_sign':
-          await signMessage(event.request, KEEPKEY_SDK);
-          break;
-        case 'eth_sendTransaction':
-          await sendTransaction(event.request, provider, KEEPKEY_SDK, ADDRESS);
-          break;
-        case 'eth_signTypedData':
-          await signTypedData(event.request, KEEPKEY_SDK, ADDRESS);
-          break;
-        default:
-          console.error(tag, `Unsupported event type: ${event.type}`);
-          throw createProviderRpcError(4200, `Method ${event.type} not supported`);
-      }
-
-      // await completeEvent(event.id);
-    } catch (error) {
-      console.error(tag, 'Error processing approved event:', error);
-    }
-  };
-
-  chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-    try {
-      if (message.action === 'eth_sign_response' && message.response.decision === 'accept') {
-        const approvedEventId = message.response.eventId;
-        const approvedEvent = await approvalStorage.getEventById(approvedEventId);
-        if (approvedEvent && approvedEvent.status === 'approval') {
-          await processApprovedEvent(approvedEvent);
-        } else {
-          console.error(tag, 'Approved event not found or status is incorrect:', approvedEventId);
-        }
-      }
-    } catch (error) {
-      console.error(tag, 'Error handling message:', error);
-    }
-  });
-
-  approvalStorage.subscribe(async changes => {
-    try {
-      for (const [key, change] of Object.entries(changes)) {
-        if (change.newValue) {
-          const event: Event = change.newValue;
-          if (event.status === 'approval') {
-            await processApprovedEvent(event);
-          }
-        }
-      }
-    } catch (error) {
-      console.error(tag, 'Error handling storage changes:', error);
-    }
-  });
 };
 
 const requireUnlock = function (requestInfo: any, method: string, params: any, KEEPKEY_SDK: any) {
@@ -184,12 +122,12 @@ const requireUnlock = function (requestInfo: any, method: string, params: any, K
 };
 
 export const handleEthereumRequest = async (
-    requestInfo: any,
-    method: string,
-    params: any[],
-    provider: JsonRpcProvider,
-    KEEPKEY_SDK: any,
-    ADDRESS: string,
+  requestInfo: any,
+  method: string,
+  params: any[],
+  provider: JsonRpcProvider,
+  KEEPKEY_SDK: any,
+  ADDRESS: string,
 ): Promise<any> => {
   const tag = 'ETH_MOCK | handleEthereumRequest | ';
   try {
@@ -288,9 +226,4 @@ export const handleEthereumRequest = async (
       throw createProviderRpcError(4000, `Unexpected error processing method ${method}`, error);
     }
   }
-};
-
-// Start listening for approval events
-export const initApprovalListener = (KEEPKEY_SDK: any) => {
-  listenForApproval(KEEPKEY_SDK);
 };

@@ -38,6 +38,8 @@ const Popup = () => {
         setEvents(prevEvents => {
           const updatedEvents = [...prevEvents, newEvent];
           // Update the events in storage
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          //@ts-expect-error
           requestStorage.addEvent(newEvent);
           return updatedEvents;
         });
@@ -72,17 +74,17 @@ const Popup = () => {
         return <Transaction event={events[0]} handleResponse={handleResponse} />;
       case 3: // busy
         return (
-            <Card borderRadius="md" p={4} mb={4}>
-              <Spinner size="xl" />
-              <Text>KeepKey is busy...</Text>
-            </Card>
+          <Card borderRadius="md" p={4} mb={4}>
+            <Spinner size="xl" />
+            <Text>KeepKey is busy...</Text>
+          </Card>
         );
       case 4: // errored
         return (
-            <Card borderRadius="md" p={4} mb={4}>
-              <Text>KeepKey encountered an error.</Text>
-              <img src="error-image.png" alt="Error" />
-            </Card>
+          <Card borderRadius="md" p={4} mb={4}>
+            <Text>KeepKey encountered an error.</Text>
+            <img src="error-image.png" alt="Error" />
+          </Card>
         );
       default:
         return <Text>Device not connected.</Text>;
