@@ -1,7 +1,7 @@
 import { AssetValue } from '@pioneer-platform/helpers';
-import { Chain, ChainToNetworkId, getChainEnumValue } from '@coinmasters/types';
+import { ChainToNetworkId, getChainEnumValue } from '@coinmasters/types';
 import { getPaths } from '@pioneer-platform/pioneer-coins';
-import { keepKeyApiKeyStorage } from '@chrome-extension-boilerplate/storage'; // Import both storages
+import { keepKeyApiKeyStorage } from '@chrome-extension-boilerplate/storage'; // Re-import the storage
 
 interface KeepKeyWallet {
   type: string;

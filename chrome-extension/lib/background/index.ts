@@ -4,7 +4,7 @@ import { exampleThemeStorage } from '@chrome-extension-boilerplate/storage';
 // @ts-expect-error
 import packageJson from '../../package.json'; // Adjust the path as needed
 import { onStartKeepkey } from './keepkey';
-import { handleEthereumRequest } from './methods';
+import {handleEthereumRequest, initApprovalListener} from './methods';
 import { JsonRpcProvider } from 'ethers';
 
 const TAG = ' | background | ';
@@ -69,6 +69,7 @@ const onStart = async function () {
     console.log(tag, '**** keepkey: ', keepkey);
     KEEPKEY_SDK = keepkey.ETH.keepkeySdk;
     console.log(tag, 'keepkeySdk: ', KEEPKEY_SDK);
+    initApprovalListener(KEEPKEY_SDK)
   } catch (e) {
     KEEPKEY_STATE = 4; // errored
     updateIcon();

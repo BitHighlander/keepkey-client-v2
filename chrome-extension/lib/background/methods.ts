@@ -1,12 +1,12 @@
 import { JsonRpcProvider } from 'ethers';
-import { requestStorage } from '@chrome-extension-boilerplate/storage'; // Import both storages
-// const { requestStorage, approvalStorage, completedStorage } = keepKeyEventsStorage;
+import { requestStorage, approvalStorage } from '@chrome-extension-boilerplate/storage';
 import { signMessage, signTransaction, signTypedData, broadcastTransaction, sendTransaction } from './sign';
 
 const TAG = ' | METHODS | ';
 const DOMAIN_WHITE_LIST = [];
 
 type Event = {
+  id: string;
   type: string;
   request: any;
   status: 'request' | 'approval' | 'completed';
@@ -32,20 +32,20 @@ const openPopup = function () {
   try {
     console.log(tag, 'Opening popup');
     chrome.windows.create(
-      {
-        url: chrome.runtime.getURL('popup/index.html'), // Adjust the URL to your popup file
-        type: 'popup',
-        width: 400,
-        height: 600,
-      },
-      window => {
-        if (chrome.runtime.lastError) {
-          console.error('Error creating popup:', chrome.runtime.lastError);
-          isPopupOpen = false;
-        } else {
-          console.log('Popup window created:', window);
-        }
-      },
+        {
+          url: chrome.runtime.getURL('popup/index.html'), // Adjust the URL to your popup file
+          type: 'popup',
+          width: 400,
+          height: 600,
+        },
+        window => {
+          if (chrome.runtime.lastError) {
+            console.error('Error creating popup:', chrome.runtime.lastError);
+            isPopupOpen = false;
+          } else {
+            console.log('Popup window created:', window);
+          }
+        },
     );
   } catch (e) {
     console.error(tag, e);
@@ -54,18 +54,16 @@ const openPopup = function () {
 
 const requireApproval = async function (requestInfo: any, method: string, params: any, KEEPKEY_SDK: any) {
   const tag = TAG + ' | requireApproval | ';
-  try{
+  try {
     isPopupOpen = true;
-    // Create an event object with the correct type
-    // Create an event object with the necessary details
-    const event = {
-      requestInfo,
+    const event: Event = {
+      id: '', // ID will be generated in storage
       type: method,
       request: params,
-      status: 'request'
+      status: 'request',
+      timestamp: new Date().toISOString()
     };
 
-    // Add the event to the requestStorage
     const eventSaved = await requestStorage.addEvent(event);
     if (eventSaved) {
       console.log(tag, 'Event saved:', event);
@@ -73,11 +71,8 @@ const requireApproval = async function (requestInfo: any, method: string, params
       throw new Error('Event not saved');
     }
 
-    // First, check if the popup is already open
     chrome.windows.getAll({ windowTypes: ['popup'] }, windows => {
       for (const win of windows) {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        //@ts-expect-error
         if (win.tabs && win.tabs[0].url.includes('popup/index.html')) {
           console.log('Popup is already open, focusing on it.');
           chrome.windows.update(win.id, { focused: true });
@@ -87,10 +82,9 @@ const requireApproval = async function (requestInfo: any, method: string, params
         }
       }
 
-      // If the popup is not open, create a new one
       chrome.windows.create(
           {
-            url: chrome.runtime.getURL('popup/index.html'), // Adjust the URL to your popup file
+            url: chrome.runtime.getURL('popup/index.html'),
             type: 'popup',
             width: 400,
             height: 600,
@@ -101,7 +95,6 @@ const requireApproval = async function (requestInfo: any, method: string, params
               isPopupOpen = false;
             } else {
               console.log('Popup window created:', window);
-              // Add event listener for popup close
               chrome.windows.onRemoved.addListener(function popupCloseListener(windowId) {
                 if (window.id === windowId) {
                   isPopupOpen = false;
@@ -109,15 +102,76 @@ const requireApproval = async function (requestInfo: any, method: string, params
                 }
               });
             }
-          },
+          }
       );
     });
-  }catch(e){
+  } catch (e) {
     console.error(tag, e);
   }
 };
 
-//locked
+const listenForApproval = (KEEPKEY_SDK: any) => {
+  const tag = TAG + ' | listenForApproval | ';
+
+  const processApprovedEvent = async (event: Event) => {
+    try {
+      console.log(tag, 'Processing approved event:', event);
+      const provider = new JsonRpcProvider();
+      const ADDRESS = '0xAddress'; // Replace with the correct address or fetch dynamically
+
+      switch (event.type) {
+        case 'eth_sign':
+          await signMessage(event.request, KEEPKEY_SDK);
+          break;
+        case 'eth_sendTransaction':
+          await sendTransaction(event.request, provider, KEEPKEY_SDK, ADDRESS);
+          break;
+        case 'eth_signTypedData':
+          await signTypedData(event.request, KEEPKEY_SDK, ADDRESS);
+          break;
+        default:
+          console.error(tag, `Unsupported event type: ${event.type}`);
+          throw createProviderRpcError(4200, `Method ${event.type} not supported`);
+      }
+
+      // await completeEvent(event.id);
+    } catch (error) {
+      console.error(tag, 'Error processing approved event:', error);
+    }
+  };
+
+  chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+    try {
+      if (message.action === 'eth_sign_response' && message.response.decision === 'accept') {
+        const approvedEventId = message.response.eventId;
+        const approvedEvent = await approvalStorage.getEventById(approvedEventId);
+        if (approvedEvent && approvedEvent.status === 'approval') {
+          await processApprovedEvent(approvedEvent);
+        } else {
+          console.error(tag, 'Approved event not found or status is incorrect:', approvedEventId);
+        }
+      }
+    } catch (error) {
+      console.error(tag, 'Error handling message:', error);
+    }
+  });
+
+  approvalStorage.subscribe(async changes => {
+    try {
+      for (const [key, change] of Object.entries(changes)) {
+        if (change.newValue) {
+          const event: Event = change.newValue;
+          if (event.status === 'approval') {
+            await processApprovedEvent(event);
+          }
+        }
+      }
+    } catch (error) {
+      console.error(tag, 'Error handling storage changes:', error);
+    }
+  });
+};
+
 const requireUnlock = function (requestInfo: any, method: string, params: any, KEEPKEY_SDK: any) {
   const tag = TAG + ' | requireUnlock | ';
   try {
@@ -130,26 +184,23 @@ const requireUnlock = function (requestInfo: any, method: string, params: any, K
 };
 
 export const handleEthereumRequest = async (
-  requestInfo: any,
-  method: string,
-  params: any[],
-  provider: JsonRpcProvider,
-  KEEPKEY_SDK: any,
-  ADDRESS: string,
+    requestInfo: any,
+    method: string,
+    params: any[],
+    provider: JsonRpcProvider,
+    KEEPKEY_SDK: any,
+    ADDRESS: string,
 ): Promise<any> => {
   const tag = 'ETH_MOCK | handleEthereumRequest | ';
   try {
     console.log(tag, 'requestInfo:', requestInfo);
     if (!requestInfo) throw Error('Can not validate request! refusing to proceed.');
-    //TODO enforce url whitelist
-    // if (requestInfo.siteUrl && !DOMAIN_WHITE_LIST.includes(requestInfo.siteUrl)) {
-    //   console.log('Domain needs approval!');
-    //   await requireUnlock(requestInfo, method, params, KEEPKEY_SDK);
-    // }
+
     if (!ADDRESS) {
       console.log('Device is not paired!');
       await requireUnlock(requestInfo, method, params, KEEPKEY_SDK);
     }
+
     switch (method) {
       case 'eth_chainId':
         console.log(tag, 'Returning eth_chainId:', '0x1');
@@ -196,31 +247,13 @@ export const handleEthereumRequest = async (
         console.log(tag, 'Returning eth_requestAccounts:', [ADDRESS]);
         return [ADDRESS];
       case 'eth_sign':
-        // eslint-disable-next-line no-case-declarations
-        const userApprovedEthSign = await requireApproval(requestInfo, method, params[0], KEEPKEY_SDK);
+        await requireApproval(requestInfo, method, params[0], KEEPKEY_SDK);
         console.log(tag, 'Calling signMessage with:', params[1]);
-        if (userApprovedEthSign) {
-          return sendTransaction(params, provider, KEEPKEY_SDK, ADDRESS);
-        } else {
-          return {
-            code: 4001,
-            message: 'User rejected the transaction',
-          };
-        }
+        return await signMessage(params[1], KEEPKEY_SDK);
       case 'eth_sendTransaction':
-        // eslint-disable-next-line no-case-declarations
-        const userApproved = await requireApproval(requestInfo, method, params[0], KEEPKEY_SDK);
+        await requireApproval(requestInfo, method, params[0], KEEPKEY_SDK);
         console.log(tag, 'Calling sendTransaction with:', params[0]);
-        if (userApproved) {
-          //save to events
-
-          return sendTransaction(params, provider, KEEPKEY_SDK, ADDRESS);
-        } else {
-          return {
-            code: 4001,
-            message: 'User rejected the transaction',
-          };
-        }
+        return await sendTransaction(params[0], provider, KEEPKEY_SDK, ADDRESS);
       case 'eth_signTransaction':
         console.log(tag, 'Calling signTransaction with:', params[0]);
         return await signTransaction(params[0], provider, KEEPKEY_SDK);
@@ -228,7 +261,6 @@ export const handleEthereumRequest = async (
         console.log(tag, 'Calling broadcastTransaction with:', params[0], 'and chainId 1');
         return await broadcastTransaction(params[0], '1', provider); // Assuming chainId is 1
       case 'eth_signTypedData':
-        // eslint-disable-next-line no-case-declarations
         const typedData = {
           types: { Message: params[0].map((param: any) => ({ name: param.name, type: param.type })) },
           primaryType: 'Message',
@@ -256,4 +288,9 @@ export const handleEthereumRequest = async (
       throw createProviderRpcError(4000, `Unexpected error processing method ${method}`, error);
     }
   }
+};
+
+// Start listening for approval events
+export const initApprovalListener = (KEEPKEY_SDK: any) => {
+  listenForApproval(KEEPKEY_SDK);
 };

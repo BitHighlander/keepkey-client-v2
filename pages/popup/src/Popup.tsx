@@ -30,7 +30,7 @@ const Popup = () => {
     };
     loadEventsFromStorage();
 
-    const listener = (message: { action: string; request: any }) => {
+    const listener = (message: { action: string; request: any; eventId?: string }) => {
       console.log('message', message);
       if (message.action && message.request) {
         // Add to events
@@ -56,7 +56,8 @@ const Popup = () => {
   }, [signRequest]);
 
   const handleResponse = (decision: 'accept' | 'reject') => {
-    chrome.runtime.sendMessage({ action: 'eth_sign_response', response: { decision } });
+    console.log('handleResponse', decision);
+    chrome.runtime.sendMessage({ action: 'eth_sign_response', response: { decision, eventId: signRequest.id } });
     window.close();
   };
 
