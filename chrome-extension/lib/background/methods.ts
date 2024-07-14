@@ -43,13 +43,13 @@ const openPopup = function () {
   }
 };
 
-const requireApproval = function (method: string, params: any, KEEPKEY_SDK: any) {
+const requireApproval = function (requestInfo: any, method: string, params: any, KEEPKEY_SDK: any) {
   if (isPopupOpen) {
     console.log('Popup is already in the process of being opened.');
     return;
   }
   isPopupOpen = true;
-  keepKeyEventsStorage.addEvent({ type: method, request: params });
+  keepKeyEventsStorage.addEvent({ requestInfo, type: method, request: params });
   // First, check if the popup is already open
   chrome.windows.getAll({ windowTypes: ['popup'] }, windows => {
     for (const win of windows) {
@@ -117,10 +117,11 @@ export const handleEthereumRequest = async (
   try {
     console.log(tag, 'requestInfo:', requestInfo);
     if (!requestInfo) throw Error('Can not validate request! refusing to proceed.');
-    if (requestInfo.siteUrl && !DOMAIN_WHITE_LIST.includes(requestInfo.siteUrl)) {
-      console.log('Domain needs approval!');
-      await requireUnlock(requestInfo, method, params, KEEPKEY_SDK);
-    }
+    //TODO enforce url whitelist
+    // if (requestInfo.siteUrl && !DOMAIN_WHITE_LIST.includes(requestInfo.siteUrl)) {
+    //   console.log('Domain needs approval!');
+    //   await requireUnlock(requestInfo, method, params, KEEPKEY_SDK);
+    // }
     if (!ADDRESS) {
       console.log('Device is not paired!');
       await requireUnlock(requestInfo, method, params, KEEPKEY_SDK);
@@ -172,7 +173,7 @@ export const handleEthereumRequest = async (
         return [ADDRESS];
       case 'eth_sign':
         // eslint-disable-next-line no-case-declarations
-        const userApprovedEthSign = await requireApproval(method, params[0], KEEPKEY_SDK);
+        const userApprovedEthSign = await requireApproval(requestInfo, method, params[0], KEEPKEY_SDK);
         console.log(tag, 'Calling signMessage with:', params[1]);
         if (userApprovedEthSign) {
           return sendTransaction(params, provider, KEEPKEY_SDK, ADDRESS);
@@ -184,7 +185,7 @@ export const handleEthereumRequest = async (
         }
       case 'eth_sendTransaction':
         // eslint-disable-next-line no-case-declarations
-        const userApproved = await requireApproval(method, params[0], KEEPKEY_SDK);
+        const userApproved = await requireApproval(requestInfo, method, params[0], KEEPKEY_SDK);
         console.log(tag, 'Calling sendTransaction with:', params[0]);
         if (userApproved) {
           //save to events
