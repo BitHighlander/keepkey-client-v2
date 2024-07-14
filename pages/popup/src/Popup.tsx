@@ -1,12 +1,11 @@
 import '@src/Popup.css';
 import { Avatar, Box, Button, Flex, Card, Text, Heading, Spinner } from '@chakra-ui/react';
-import { useStorageSuspense, withErrorBoundary, withSuspense } from '@chrome-extension-boilerplate/shared';
-import { exampleThemeStorage, keepKeyEventsStorage } from '@chrome-extension-boilerplate/storage';
 import { useState, useEffect } from 'react';
+import { requestStorage } from '@chrome-extension-boilerplate/storage';
+import { useStorageSuspense, withErrorBoundary, withSuspense } from '@chrome-extension-boilerplate/shared';
 import Transaction from './Transaction'; // Adjust the import path accordingly
 
 const Popup = () => {
-  const theme = useStorageSuspense(exampleThemeStorage);
   const [signRequest, setSignRequest] = useState<any>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [keepkeyState, setKeepkeyState] = useState<number>(0);
@@ -21,7 +20,7 @@ const Popup = () => {
 
     // Load events from storage on startup
     const loadEventsFromStorage = async () => {
-      const storedEvents = await keepKeyEventsStorage.getEvents();
+      const storedEvents = await requestStorage.getEvents();
       if (storedEvents) {
         setEvents(storedEvents);
         if (storedEvents.length > 0 && !signRequest) {
@@ -39,7 +38,7 @@ const Popup = () => {
         setEvents(prevEvents => {
           const updatedEvents = [...prevEvents, newEvent];
           // Update the events in storage
-          keepKeyEventsStorage.addEvent(newEvent);
+          requestStorage.addEvent(newEvent);
           return updatedEvents;
         });
         if (!signRequest) {
@@ -72,17 +71,17 @@ const Popup = () => {
         return <Transaction event={events[0]} handleResponse={handleResponse} />;
       case 3: // busy
         return (
-          <Card borderRadius="md" p={4} mb={4}>
-            <Spinner size="xl" />
-            <Text>KeepKey is busy...</Text>
-          </Card>
+            <Card borderRadius="md" p={4} mb={4}>
+              <Spinner size="xl" />
+              <Text>KeepKey is busy...</Text>
+            </Card>
         );
       case 4: // errored
         return (
-          <Card borderRadius="md" p={4} mb={4}>
-            <Text>KeepKey encountered an error.</Text>
-            <img src="error-image.png" alt="Error" />
-          </Card>
+            <Card borderRadius="md" p={4} mb={4}>
+              <Text>KeepKey encountered an error.</Text>
+              <img src="error-image.png" alt="Error" />
+            </Card>
         );
       default:
         return <Text>Device not connected.</Text>;

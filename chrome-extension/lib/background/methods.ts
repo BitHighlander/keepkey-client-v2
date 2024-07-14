@@ -1,10 +1,17 @@
 import { JsonRpcProvider } from 'ethers';
-import { keepKeyEventsStorage } from '@chrome-extension-boilerplate/storage'; // Import both storages
+import { requestStorage } from '@chrome-extension-boilerplate/storage'; // Import both storages
+// const { requestStorage, approvalStorage, completedStorage } = keepKeyEventsStorage;
 import { signMessage, signTransaction, signTypedData, broadcastTransaction, sendTransaction } from './sign';
 
 const TAG = ' | METHODS | ';
-
 const DOMAIN_WHITE_LIST = [];
+
+type Event = {
+  type: string;
+  request: any;
+  status: 'request' | 'approval' | 'completed';
+  timestamp: string;
+};
 
 interface ProviderRpcError extends Error {
   code: number;
@@ -45,54 +52,69 @@ const openPopup = function () {
   }
 };
 
-const requireApproval = function (requestInfo: any, method: string, params: any, KEEPKEY_SDK: any) {
-  if (isPopupOpen) {
-    console.log('Popup is already in the process of being opened.');
-    return;
-  }
-  isPopupOpen = true;
-  keepKeyEventsStorage.addEvent({ requestInfo, type: method, request: params });
-  // First, check if the popup is already open
-  chrome.windows.getAll({ windowTypes: ['popup'] }, windows => {
-    for (const win of windows) {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      //@ts-expect-error
-      if (win.tabs && win.tabs[0].url.includes('popup/index.html')) {
-        console.log('Popup is already open, focusing on it.');
-        chrome.windows.update(win.id, { focused: true });
-        chrome.runtime.sendMessage({ action: 'eth_sign', request: params });
-        isPopupOpen = false;
-        return;
-      }
+const requireApproval = async function (requestInfo: any, method: string, params: any, KEEPKEY_SDK: any) {
+  const tag = TAG + ' | requireApproval | ';
+  try{
+    isPopupOpen = true;
+    // Create an event object with the correct type
+    // Create an event object with the necessary details
+    const event = {
+      requestInfo,
+      type: method,
+      request: params,
+      status: 'request'
+    };
+
+    // Add the event to the requestStorage
+    const eventSaved = await requestStorage.addEvent(event);
+    if (eventSaved) {
+      console.log(tag, 'Event saved:', event);
+    } else {
+      throw new Error('Event not saved');
     }
 
-    // If the popup is not open, create a new one
-    chrome.windows.create(
-      {
-        url: chrome.runtime.getURL('popup/index.html'), // Adjust the URL to your popup file
-        type: 'popup',
-        width: 400,
-        height: 600,
-      },
-      window => {
-        if (chrome.runtime.lastError) {
-          console.error('Error creating popup:', chrome.runtime.lastError);
+    // First, check if the popup is already open
+    chrome.windows.getAll({ windowTypes: ['popup'] }, windows => {
+      for (const win of windows) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        //@ts-expect-error
+        if (win.tabs && win.tabs[0].url.includes('popup/index.html')) {
+          console.log('Popup is already open, focusing on it.');
+          chrome.windows.update(win.id, { focused: true });
+          chrome.runtime.sendMessage({ action: 'eth_sign', request: params });
           isPopupOpen = false;
-        } else {
-          console.log('Popup window created:', window);
-          // Add event listener for popup close
-          chrome.windows.onRemoved.addListener(function popupCloseListener(windowId) {
-            if (window.id === windowId) {
-              isPopupOpen = false;
-              chrome.windows.onRemoved.removeListener(popupCloseListener);
-            }
-          });
-          // Send the sign request message to the newly created popup
-          chrome.runtime.sendMessage({ action: method, request: params });
+          return;
         }
-      },
-    );
-  });
+      }
+
+      // If the popup is not open, create a new one
+      chrome.windows.create(
+          {
+            url: chrome.runtime.getURL('popup/index.html'), // Adjust the URL to your popup file
+            type: 'popup',
+            width: 400,
+            height: 600,
+          },
+          window => {
+            if (chrome.runtime.lastError) {
+              console.error('Error creating popup:', chrome.runtime.lastError);
+              isPopupOpen = false;
+            } else {
+              console.log('Popup window created:', window);
+              // Add event listener for popup close
+              chrome.windows.onRemoved.addListener(function popupCloseListener(windowId) {
+                if (window.id === windowId) {
+                  isPopupOpen = false;
+                  chrome.windows.onRemoved.removeListener(popupCloseListener);
+                }
+              });
+            }
+          },
+      );
+    });
+  }catch(e){
+    console.error(tag, e);
+  }
 };
 
 //locked

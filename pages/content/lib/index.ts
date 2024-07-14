@@ -1,8 +1,4 @@
-import { toggleTheme } from '@lib/toggleTheme';
-
 console.log('content script loaded');
-
-void toggleTheme();
 
 window.addEventListener('message', event => {
   if (event.source !== window || !event.data || event.data.type !== 'ETH_REQUEST') return;

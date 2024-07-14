@@ -1,13 +1,13 @@
 import { createStorage, StorageType, type BaseStorage, SessionAccessLevel } from './base';
-import { exampleThemeStorage } from './exampleThemeStorage';
-import { keepKeyApiKeyStorage, keepKeyEventsStorage } from './customStorage';
+import { keepKeyApiKeyStorage, requestStorage, approvalStorage, completedStorage } from './customStorage';
 
 export {
   keepKeyApiKeyStorage,
-  keepKeyEventsStorage,
-  exampleThemeStorage,
+  requestStorage,
+  approvalStorage,
+  completedStorage,
   createStorage,
   StorageType,
   SessionAccessLevel,
-  BaseStorage,
 };
+export type { BaseStorage };
