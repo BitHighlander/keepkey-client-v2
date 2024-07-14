@@ -1,77 +1,95 @@
 import '@src/Popup.css';
-import { Avatar, Box, Button, Flex, Card, Text, Heading } from '@chakra-ui/react';
+import { Avatar, Box, Button, Flex, Card, Text, Heading, Spinner } from '@chakra-ui/react';
 import { useStorageSuspense, withErrorBoundary, withSuspense } from '@chrome-extension-boilerplate/shared';
-import { exampleThemeStorage } from '@chrome-extension-boilerplate/storage';
-
+import { exampleThemeStorage, keepKeyEventsStorage } from '@chrome-extension-boilerplate/storage';
 import { useState, useEffect } from 'react';
+import Transaction from './Transaction'; // Adjust the import path accordingly
 
 const Popup = () => {
   const theme = useStorageSuspense(exampleThemeStorage);
   const [signRequest, setSignRequest] = useState<any>(null);
-  const [events, setEvents] = useState<any[]>([
-    {
-      icon: 'https://avatars.githubusercontent.com/u/12554817?s=200&v=4',
-      title: 'Event 1',
-      description: 'Description 1',
-      tx: {},
-    },
-  ]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [keepkeyState, setKeepkeyState] = useState<number>(0);
 
   useEffect(() => {
-    const listener = (message: { action: string; request: any }) => {
-      console.log('event:', message);
-      // if (message.action === 'eth_sign') {
-      //     setSignRequest(message.request);
-      // }
+    // Fetch the KeepKey state when the popup opens
+    chrome.runtime.sendMessage({ type: 'GET_KEEPKEY_STATE' }, response => {
+      if (response && response.state !== undefined) {
+        setKeepkeyState(response.state);
+      }
+    });
+
+    // Load events from storage on startup
+    const loadEventsFromStorage = async () => {
+      const storedEvents = await keepKeyEventsStorage.getEvents();
+      if (storedEvents) {
+        setEvents(storedEvents);
+        if (storedEvents.length > 0 && !signRequest) {
+          setSignRequest(storedEvents[0]);
+        }
+      }
     };
+    loadEventsFromStorage();
+
+    const listener = (message: { action: string; request: any }) => {
+      console.log('message', message);
+      if (message.action && message.request) {
+        // Add to events
+        const newEvent = { action: message.action, request: message.request };
+        setEvents(prevEvents => {
+          const updatedEvents = [...prevEvents, newEvent];
+          // Update the events in storage
+          keepKeyEventsStorage.addEvent(newEvent);
+          return updatedEvents;
+        });
+        if (!signRequest) {
+          setSignRequest(newEvent);
+        }
+      } else if (message.action === 'UPDATE_KEEPKEY_STATE') {
+        setKeepkeyState(message.state);
+      }
+    };
+
     chrome.runtime.onMessage.addListener(listener);
     return () => {
       chrome.runtime.onMessage.removeListener(listener);
     };
-  }, []);
+  }, [signRequest]);
 
   const handleResponse = (decision: 'accept' | 'reject') => {
     chrome.runtime.sendMessage({ action: 'eth_sign_response', response: { decision } });
     window.close();
   };
 
-  return (
-    <div>
-      {signRequest && (
-        <Card borderRadius="md" p={4} mb={4}>
-          <Heading as="h3" size="md" mb={2}>
-            Sign Request
-          </Heading>
-          <Text mb={4}>You have a new sign request.</Text>
-          <Button colorScheme="green" onClick={() => handleResponse('accept')} mr={2}>
-            Approve
-          </Button>
-          <Button colorScheme="red" onClick={() => handleResponse('reject')}>
-            Reject
-          </Button>
-        </Card>
-      )}
-      {events.map((event: any, index: any) => (
-        <Card key={index} borderRadius="md" p={1} mb={1} width="100%">
-          <Flex align="center" width="100%">
-            <Avatar src={event.icon} />
-            <Box ml={3} flex="1" minWidth="0">
-              <Heading as="h4" size="sm">
-                {event.title}
-              </Heading>
-              <Text fontSize="sm">{event.description}</Text>
-            </Box>
-            <Button ml={2} colorScheme="green" size="xs" onClick={() => handleResponse('accept')}>
-              Approve
-            </Button>
-            <Button ml={2} colorScheme="red" size="xs" onClick={() => handleResponse('reject')}>
-              Reject
-            </Button>
-          </Flex>
-        </Card>
-      ))}
-    </div>
-  );
+  const renderContent = () => {
+    switch (keepkeyState) {
+      case 1: // disconnected
+        return <Text>KeepKey is disconnected.</Text>;
+      case 2: // connected
+        if (events.length === 0) {
+          return <Text>Connected and no events.</Text>;
+        }
+        return <Transaction event={events[0]} handleResponse={handleResponse} />;
+      case 3: // busy
+        return (
+          <Card borderRadius="md" p={4} mb={4}>
+            <Spinner size="xl" />
+            <Text>KeepKey is busy...</Text>
+          </Card>
+        );
+      case 4: // errored
+        return (
+          <Card borderRadius="md" p={4} mb={4}>
+            <Text>KeepKey encountered an error.</Text>
+            <img src="error-image.png" alt="Error" />
+          </Card>
+        );
+      default:
+        return <Text>Device not connected.</Text>;
+    }
+  };
+
+  return <div>{renderContent()}</div>;
 };
 
 export default withErrorBoundary(withSuspense(Popup, <div>Loading ...</div>), <div>Error Occurred</div>);

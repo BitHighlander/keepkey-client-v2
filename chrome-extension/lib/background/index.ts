@@ -6,6 +6,7 @@ import packageJson from '../../package.json'; // Adjust the path as needed
 import { onStartKeepkey } from './keepkey';
 import { handleEthereumRequest } from './methods';
 import { JsonRpcProvider } from 'ethers';
+
 const TAG = ' | background | ';
 console.log('background script loaded');
 console.log('Version:', packageJson.version);
@@ -14,7 +15,8 @@ const KEEPKEY_STATES = {
   0: 'unknown',
   1: 'disconnected',
   2: 'connected',
-  3: 'errored',
+  3: 'busy', // multi-user-action signing can not be interrupted
+  4: 'errored',
 };
 let KEEPKEY_STATE = 0;
 
@@ -45,7 +47,7 @@ const EIP155_CHAINS = {
 };
 const provider = new JsonRpcProvider(EIP155_CHAINS['eip155:1'].rpc);
 
-//Begin KK
+// Begin KK
 let ADDRESS = '';
 let KEEPKEY_SDK: any = '';
 const onStart = async function () {
@@ -68,21 +70,12 @@ const onStart = async function () {
     KEEPKEY_SDK = keepkey.ETH.keepkeySdk;
     console.log(tag, 'keepkeySdk: ', KEEPKEY_SDK);
   } catch (e) {
+    KEEPKEY_STATE = 4; // errored
+    updateIcon();
     console.error(tag, 'e: ', e);
   }
 };
 onStart();
-
-// Function to create the popup window
-
-// Methods that should trigger the popup
-// const POPUP_METHODS = [
-//   'eth_signTypedData',
-//   'eth_signTypedData_v4',
-//   'eth_signTypedData_v3',
-//   'eth_sign',
-//   'eth_sendTransaction',
-// ];
 
 // Listen for messages from the content script
 chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: any) => {
@@ -95,13 +88,6 @@ chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: a
     console.log(tag, 'method:', method);
     console.log(tag, 'params:', params);
     console.log(tag, 'ADDRESS:', ADDRESS);
-    // console.log(tag, 'KEEPKEY_SDK:', KEEPKEY_SDK);
-
-    // Check if the method is one of the specific methods that should trigger the popup
-    // eslint-disable-next-line no-constant-condition
-    // if (POPUP_METHODS.includes(method)) {
-    //   openPopupWindow();
-    // }
 
     handleEthereumRequest(method, params, provider, KEEPKEY_SDK, ADDRESS)
       .then(result => {
@@ -114,6 +100,11 @@ chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: a
     return true; // Indicates that the response is asynchronous
   }
 
-  // Return false if the message type is not 'ETH_REQUEST'
+  if (message.type === 'GET_KEEPKEY_STATE') {
+    sendResponse({ state: KEEPKEY_STATE });
+    return true;
+  }
+
+  // Return false if the message type is not handled
   return false;
 });

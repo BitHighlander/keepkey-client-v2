@@ -1,5 +1,7 @@
 import { JsonRpcProvider } from 'ethers';
 const TAG = ' | METHODS | ';
+import { keepKeyEventsStorage } from '@chrome-extension-boilerplate/storage'; // Import both storages
+
 interface ProviderRpcError extends Error {
   code: number;
   data?: unknown;
@@ -20,6 +22,7 @@ const requireApproval = function (method: string, params: any, KEEPKEY_SDK: any)
     return;
   }
   isPopupOpen = true;
+  keepKeyEventsStorage.addEvent({ type: method, request: params });
   // First, check if the popup is already open
   chrome.windows.getAll({ windowTypes: ['popup'] }, windows => {
     for (const win of windows) {
@@ -72,6 +75,7 @@ const requireUnlock = function (method: string, params: any, KEEPKEY_SDK: any) {
   }
   isPopupOpen = true;
   try {
+    keepKeyEventsStorage.addEvent({ type: method, request: params });
     // First, check if the popup is already open
     chrome.windows.getAll({ windowTypes: ['popup'] }, windows => {
       for (const win of windows) {
@@ -107,8 +111,8 @@ const requireUnlock = function (method: string, params: any, KEEPKEY_SDK: any) {
                 chrome.windows.onRemoved.removeListener(popupCloseListener);
               }
             });
-            // Send the unlock request message to the newly created popup
-            chrome.runtime.sendMessage({ action: 'unlock', request: params });
+            // Send the request message to the newly created popup
+            chrome.runtime.sendMessage({ action: method, request: params });
           }
         },
       );
@@ -194,6 +198,8 @@ export const handleEthereumRequest = async (
         const userApproved = await requireApproval(method, params[0], KEEPKEY_SDK);
         console.log(tag, 'Calling sendTransaction with:', params[0]);
         if (userApproved) {
+          //save to events
+
           return sendTransaction(params, provider, KEEPKEY_SDK, ADDRESS);
         } else {
           return {
