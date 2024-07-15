@@ -1,7 +1,7 @@
 import { JsonRpcProvider } from 'ethers';
 import { requestStorage, approvalStorage } from '@chrome-extension-boilerplate/storage';
 import { signMessage, signTransaction, signTypedData, broadcastTransaction, sendTransaction } from './sign';
-
+import { v4 as uuidv4 } from 'uuid';
 const TAG = ' | METHODS | ';
 const DOMAIN_WHITE_LIST = [];
 
@@ -57,54 +57,56 @@ const requireApproval = async function (requestInfo: any, method: string, params
   try {
     isPopupOpen = true;
     const event: Event = {
-      id: '', // ID will be generated in storage
+      id: uuidv4(), // ID will be generated in storage
       type: method,
       request: params,
       status: 'request',
       timestamp: new Date().toISOString(),
     };
-
+    console.log(tag, 'Requesting approval for event:', event);
     const eventSaved = await requestStorage.addEvent(event);
     if (eventSaved) {
+      console.log(tag, 'eventSaved:', eventSaved);
       console.log(tag, 'Event saved:', event);
     } else {
       throw new Error('Event not saved');
     }
+    openPopup();
 
-    chrome.windows.getAll({ windowTypes: ['popup'] }, windows => {
-      for (const win of windows) {
-        if (win.tabs && win.tabs[0].url.includes('popup/index.html')) {
-          console.log('Popup is already open, focusing on it.');
-          chrome.windows.update(win.id, { focused: true });
-          chrome.runtime.sendMessage({ action: 'eth_sign', request: params });
-          isPopupOpen = false;
-          return;
-        }
-      }
-
-      chrome.windows.create(
-        {
-          url: chrome.runtime.getURL('popup/index.html'),
-          type: 'popup',
-          width: 400,
-          height: 600,
-        },
-        window => {
-          if (chrome.runtime.lastError) {
-            console.error('Error creating popup:', chrome.runtime.lastError);
-            isPopupOpen = false;
-          } else {
-            console.log('Popup window created:', window);
-            chrome.windows.onRemoved.addListener(function popupCloseListener(windowId) {
-              if (window.id === windowId) {
-                isPopupOpen = false;
-                chrome.windows.onRemoved.removeListener(popupCloseListener);
-              }
-            });
-          }
-        },
-      );
-    });
+    // chrome.windows.getAll({ windowTypes: ['popup'] }, windows => {
+    //   for (const win of windows) {
+    //     if (win.tabs && win.tabs[0].url.includes('popup/index.html')) {
+    //       console.log('Popup is already open, focusing on it.');
+    //       chrome.windows.update(win.id, { focused: true });
+    //       chrome.runtime.sendMessage({ action: 'eth_sign', request: params });
+    //       isPopupOpen = false;
+    //       return;
+    //     }
+    //   }
+    //
+    //   chrome.windows.create(
+    //     {
+    //       url: chrome.runtime.getURL('popup/index.html'),
+    //       type: 'popup',
+    //       width: 400,
+    //       height: 600,
+    //     },
+    //     window => {
+    //       if (chrome.runtime.lastError) {
+    //         console.error('Error creating popup:', chrome.runtime.lastError);
+    //         isPopupOpen = false;
+    //       } else {
+    //         console.log('Popup window created:', window);
+    //         chrome.windows.onRemoved.addListener(function popupCloseListener(windowId) {
+    //           if (window.id === windowId) {
+    //             isPopupOpen = false;
+    //             chrome.windows.onRemoved.removeListener(popupCloseListener);
+    //           }
+    //         });
+    //       }
+    //     },
+    //   );
+    // });
   } catch (e) {
     console.error(tag, e);
   }
@@ -187,18 +189,23 @@ export const handleEthereumRequest = async (
       case 'eth_sign':
         await requireApproval(requestInfo, method, params[0], KEEPKEY_SDK);
         console.log(tag, 'Calling signMessage with:', params[1]);
-        return await signMessage(params[1], KEEPKEY_SDK);
+        // return await signMessage(params[1], KEEPKEY_SDK);
+        return true;
       case 'eth_sendTransaction':
         await requireApproval(requestInfo, method, params[0], KEEPKEY_SDK);
         console.log(tag, 'Calling sendTransaction with:', params[0]);
-        return await sendTransaction(params[0], provider, KEEPKEY_SDK, ADDRESS);
+        // return await sendTransaction(params[0], provider, KEEPKEY_SDK, ADDRESS);
+        return true;
       case 'eth_signTransaction':
+        await requireApproval(requestInfo, method, params[0], KEEPKEY_SDK);
         console.log(tag, 'Calling signTransaction with:', params[0]);
-        return await signTransaction(params[0], provider, KEEPKEY_SDK);
+        // return await signTransaction(params[0], provider, KEEPKEY_SDK);
+        return true;
       case 'eth_sendRawTransaction':
         console.log(tag, 'Calling broadcastTransaction with:', params[0], 'and chainId 1');
         return await broadcastTransaction(params[0], '1', provider); // Assuming chainId is 1
       case 'eth_signTypedData':
+        // eslint-disable-next-line no-case-declarations
         const typedData = {
           types: { Message: params[0].map((param: any) => ({ name: param.name, type: param.type })) },
           primaryType: 'Message',

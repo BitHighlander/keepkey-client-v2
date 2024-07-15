@@ -16,7 +16,17 @@ type Event = {
 const processApprovedEvent = async (event: Event, KEEPKEY_SDK: any, ADDRESS: string) => {
   try {
     console.log(TAG, 'Processing approved event:', event);
-    const provider = new JsonRpcProvider();
+    const EIP155_CHAINS = {
+      'eip155:1': {
+        chainId: 1,
+        name: 'Ethereum',
+        logo: '/chain-logos/eip155-1.png',
+        rgb: '99, 125, 234',
+        rpc: 'https://eth.llamarpc.com',
+        namespace: 'eip155',
+      },
+    };
+    const provider = new JsonRpcProvider(EIP155_CHAINS['eip155:1'].rpc);
 
     switch (event.type) {
       case 'eth_sign':
@@ -46,9 +56,9 @@ export const listenForApproval = (KEEPKEY_SDK: any, ADDRESS: string) => {
         const approvedEventId = message.response.eventId;
         console.log(tag, 'Retrieving approved event with ID:', approvedEventId);
         const eventsApproved = await approvalStorage.getEvents();
-        console.log(tag, 'Retrieved eventsApproved:', eventsApproved);
+        console.log(tag, 'eventsApproved:', eventsApproved);
         const eventsRequested = await requestStorage.getEvents();
-        console.log(tag, 'Retrieved eventsRequested:', eventsRequested);
+        console.log(tag, 'eventsRequested:', eventsRequested);
 
         const requestedEvent = await requestStorage.getEventById(approvedEventId);
         console.log(tag, 'Retrieved requested event:', requestedEvent);

@@ -121,7 +121,7 @@ export const sendTransaction = async (
     if (userResponse.decision === 'accept') {
       console.log(tag, 'User accepted the request');
       console.log(tag, 'transaction:', transaction);
-      const params = transaction[0];
+      const params = transaction;
       const chainId = '0x1';
       params.chainId = chainId;
       params.from = ADDRESS;

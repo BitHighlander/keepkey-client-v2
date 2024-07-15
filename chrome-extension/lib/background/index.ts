@@ -83,7 +83,7 @@ onStart();
 
 // Listen for messages from the content script
 chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: any) => {
-  const tag = 'ETH_MOCK | chrome.runtime.onMessage | ';
+  const tag = TAG + ' | chrome.runtime.onMessage | ';
   console.log(tag, 'message:', message);
 
   if (message.type === 'ETH_REQUEST') {

@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid';
 import { BaseStorage, createStorage, StorageType } from './base';
 
 type Event = {
@@ -55,10 +54,9 @@ const createEventStorage = (key: string): EventStorage => {
     ...storage,
     addEvent: async (event: Event): Promise<boolean> => {
       const tag = TAG + ' | addEvent | ';
-      const eventWithId = { ...event, id: uuidv4(), timestamp: new Date().toISOString() };
-      console.log(tag, 'Adding event:', eventWithId);
-
       try {
+        const eventWithId = { ...event, timestamp: new Date().toISOString() };
+        console.log(tag, 'Adding event:', eventWithId);
         await storage.set(prev => [...prev, eventWithId]);
         const savedEvents = await storage.get();
         const isSaved = savedEvents ? savedEvents.some(e => e.id === eventWithId.id) : false;
@@ -104,7 +102,12 @@ export const requestStorage = createEventStorage('keepkey-requests');
 export const approvalStorage = createEventStorage('keepkey-approvals');
 export const completedStorage = createEventStorage('keepkey-completed');
 
-const moveEvent = async (eventId: string, fromStorage: EventStorage, toStorage: EventStorage, newStatus: 'approval' | 'completed') => {
+const moveEvent = async (
+  eventId: string,
+  fromStorage: EventStorage,
+  toStorage: EventStorage,
+  newStatus: 'approval' | 'completed',
+) => {
   const tag = TAG + ' | moveEvent | ';
   const event = await fromStorage.getEventById(eventId);
   if (!event) throw new Error(`Event with id ${eventId} not found`);

@@ -24,7 +24,9 @@
     "@coinmasters/wallet-keepkey": "^13.0.41",
     "@pioneer-platform/helpers": "^4.0.10",
     "@pioneer-platform/pioneer-coins": "^9.2.23",
+    "@types/uuid": "^10.0.0",
     "ethers": "^6.13.1",
+    "uuid": "^10.0.0",
     "webextension-polyfill": "^0.12.0"
   },
   "devDependencies": {

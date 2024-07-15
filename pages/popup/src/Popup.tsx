@@ -57,21 +57,23 @@ const Popup = () => {
     };
   }, [signRequest]);
 
-  const handleResponse = (decision: 'accept' | 'reject') => {
-    console.log('handleResponse', decision);
-    chrome.runtime.sendMessage({ action: 'eth_sign_response', response: { decision, eventId: signRequest.id } });
-    window.close();
-  };
+  // const handleResponse = (decision: 'accept' | 'reject') => {
+  //   console.log('handleResponse', decision);
+  //   chrome.runtime.sendMessage({ action: 'eth_sign_response', response: { decision, eventId: signRequest.id } });
+  //   window.close();
+  // };
 
   const renderContent = () => {
     switch (keepkeyState) {
+      case 0: // disconnected
+        return <Text>spinner....</Text>;
       case 1: // disconnected
         return <Text>KeepKey is disconnected.</Text>;
       case 2: // connected
         if (events.length === 0) {
           return <Text>Connected and no events.</Text>;
         }
-        return <Transaction event={events[0]} handleResponse={handleResponse} />;
+        return <Transaction event={events[0]} />;
       case 3: // busy
         return (
           <Card borderRadius="md" p={4} mb={4}>
