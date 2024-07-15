@@ -44,6 +44,26 @@ const openPopup = function () {
           isPopupOpen = false;
         } else {
           console.log('Popup window created:', window);
+
+          // Continuously focus the popup to simulate "always on top"
+          const intervalId = setInterval(() => {
+            chrome.windows.update(window.id, { focused: true }, updatedWindow => {
+              if (chrome.runtime.lastError) {
+                console.error('Error focusing popup:', chrome.runtime.lastError);
+                clearInterval(intervalId); // Stop the interval if there is an error
+              } else {
+                console.log('Popup window focused:', updatedWindow);
+              }
+            });
+          }, 600); // Adjust the interval as needed
+
+          // Optionally, clear the interval when the popup is closed
+          chrome.windows.onRemoved.addListener(windowId => {
+            if (windowId === window.id) {
+              clearInterval(intervalId);
+              console.log('Popup window closed, interval cleared');
+            }
+          });
         }
       },
     );
@@ -51,6 +71,31 @@ const openPopup = function () {
     console.error(tag, e);
   }
 };
+
+// const openPopup = function () {
+//   const tag = TAG + ' | openPopup | ';
+//   try {
+//     console.log(tag, 'Opening popup');
+//     chrome.windows.create(
+//       {
+//         url: chrome.runtime.getURL('popup/index.html'), // Adjust the URL to your popup file
+//         type: 'popup',
+//         width: 400,
+//         height: 600,
+//       },
+//       window => {
+//         if (chrome.runtime.lastError) {
+//           console.error('Error creating popup:', chrome.runtime.lastError);
+//           isPopupOpen = false;
+//         } else {
+//           console.log('Popup window created:', window);
+//         }
+//       },
+//     );
+//   } catch (e) {
+//     console.error(tag, e);
+//   }
+// };
 
 const requireApproval = async function (requestInfo: any, method: string, params: any, KEEPKEY_SDK: any) {
   const tag = TAG + ' | requireApproval | ';
