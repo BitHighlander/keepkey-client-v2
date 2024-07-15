@@ -60,16 +60,16 @@ const EventsViewer = () => {
           Next
         </Button>
       </Flex>
-      <Flex mt={4} justify="space-between">
-        <Button colorScheme="red" onClick={clearRequestEvents}>
-          Clear Request Events
-        </Button>
-        <Button colorScheme="red" onClick={clearApprovalEvents}>
-          Clear Approval Events
-        </Button>
-        <Button colorScheme="red" onClick={clearCompletedEvents}>
-          Clear Completed Events
-        </Button>
+      <Flex>
+        {/*<Button colorScheme="red" onClick={clearRequestEvents}>*/}
+        {/*  Clear Request Events*/}
+        {/*</Button>*/}
+        {/*<Button colorScheme="red" onClick={clearApprovalEvents}>*/}
+        {/*  Clear Approval Events*/}
+        {/*</Button>*/}
+        {/*<Button colorScheme="red" onClick={clearCompletedEvents}>*/}
+        {/*  Clear Completed Events*/}
+        {/*</Button>*/}
       </Flex>
     </Box>
   );

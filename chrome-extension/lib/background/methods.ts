@@ -157,7 +157,7 @@ export const handleEthereumRequest = async (
         return '0x1';
       case 'net_version':
         console.log(tag, 'Returning net_version:', '1');
-        return '1';
+        return '0x1';
       case 'eth_getBlockByNumber':
         console.log(tag, 'Calling eth_getBlockByNumber with:', params);
         return await provider.getBlock(params[0]);
