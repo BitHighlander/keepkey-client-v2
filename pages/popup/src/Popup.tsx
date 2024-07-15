@@ -1,9 +1,9 @@
 import '@src/Popup.css';
 import { Avatar, Box, Button, Flex, Card, Text, Heading, Spinner } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
-import { requestStorage } from '@chrome-extension-boilerplate/storage';
-import { useStorageSuspense, withErrorBoundary, withSuspense } from '@chrome-extension-boilerplate/shared';
-import Transaction from './Transaction'; // Adjust the import path accordingly
+import { requestStorage, approvalStorage } from '@chrome-extension-boilerplate/storage';
+import { withErrorBoundary, withSuspense } from '@chrome-extension-boilerplate/shared';
+import EventsViewer from './components/Events'; // Adjust the import path accordingly
 
 const Popup = () => {
   const [signRequest, setSignRequest] = useState<any>(null);
@@ -20,17 +20,21 @@ const Popup = () => {
 
     // Load events from storage on startup
     const loadEventsFromStorage = async () => {
-      const storedEvents = await requestStorage.getEvents();
-      if (storedEvents) {
+      const eventsApproved = await approvalStorage.getEvents();
+      console.log('eventsApproved:', eventsApproved);
+      const eventsRequested = await requestStorage.getEvents();
+      console.log('eventsRequested:', eventsRequested);
+      const storedEvents = [...(eventsApproved || []), ...(eventsRequested || [])];
+      if (storedEvents.length > 0) {
         setEvents(storedEvents);
-        if (storedEvents.length > 0 && !signRequest) {
+        if (!signRequest) {
           setSignRequest(storedEvents[0]);
         }
       }
     };
     loadEventsFromStorage();
 
-    const listener = (message: { action: string; request: any; eventId?: string }) => {
+    const listener = (message: { action: string; request: any; state?: number }) => {
       console.log('message', message);
       if (message.action && message.request) {
         // Add to events
@@ -38,15 +42,13 @@ const Popup = () => {
         setEvents(prevEvents => {
           const updatedEvents = [...prevEvents, newEvent];
           // Update the events in storage
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          //@ts-expect-error
           requestStorage.addEvent(newEvent);
           return updatedEvents;
         });
         if (!signRequest) {
           setSignRequest(newEvent);
         }
-      } else if (message.action === 'UPDATE_KEEPKEY_STATE') {
+      } else if (message.action === 'UPDATE_KEEPKEY_STATE' && message.state !== undefined) {
         setKeepkeyState(message.state);
       }
     };
@@ -56,12 +58,6 @@ const Popup = () => {
       chrome.runtime.onMessage.removeListener(listener);
     };
   }, [signRequest]);
-
-  // const handleResponse = (decision: 'accept' | 'reject') => {
-  //   console.log('handleResponse', decision);
-  //   chrome.runtime.sendMessage({ action: 'eth_sign_response', response: { decision, eventId: signRequest.id } });
-  //   window.close();
-  // };
 
   const renderContent = () => {
     switch (keepkeyState) {
@@ -73,7 +69,7 @@ const Popup = () => {
         if (events.length === 0) {
           return <Text>Connected and no events.</Text>;
         }
-        return <Transaction event={events[0]} />;
+        return <EventsViewer />;
       case 3: // busy
         return (
           <Card borderRadius="md" p={4} mb={4}>

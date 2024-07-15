@@ -8,7 +8,7 @@ import { handleEthereumRequest } from './methods';
 import { listenForApproval } from './approvals';
 import { JsonRpcProvider } from 'ethers';
 
-const TAG = ' | background | ';
+const TAG = ' | background/index.js | ';
 console.log('background script loaded');
 console.log('Version:', packageJson.version);
 
