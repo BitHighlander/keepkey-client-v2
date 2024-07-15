@@ -36,10 +36,6 @@
 
         // Listen for the response from the content script
         function handleMessage(event) {
-          // console.log(tag, 'event:', event);
-          // console.log(tag, 'event.data:', event.data);
-          // console.log(tag, 'event.data.type:', event.data.type);
-          // console.log(tag, 'event.data.result:', event.data.result);
           if (event.data.result) resolve(event.data.result);
         }
 
@@ -96,6 +92,15 @@
       removeListener: (event, handler) => {
         console.log(tag, `event unregistered: ${event}`);
         window.removeEventListener(event, handler);
+      },
+      removeAllListeners: () => {
+        console.log(tag, `removeAllListeners called`);
+        // You need to keep track of the events and handlers to remove them all
+        // This is a simple example, you'll need to adapt it to your specific use case
+        const events = ['message', 'click', 'keydown']; // Add the events you want to track
+        events.forEach(event => {
+          window.removeEventListener(event, () => {});
+        });
       },
       chainId: '0x1', // Ensure chainId is correctly set
       networkVersion: '1', // Ensure networkVersion is correctly set
