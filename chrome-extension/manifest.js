@@ -36,23 +36,20 @@ const manifest = Object.assign(
       default_popup: 'popup/index.html',
       default_icon: 'icon-34.png',
     },
-    chrome_url_overrides: {
-      newtab: 'new-tab/index.html',
-    },
     icons: {
       128: 'icon-128.png',
     },
     content_scripts: [
       {
-        matches: ['http://*/*', 'https://*/*', '<all_urls>'],
+        matches: ['<all_urls>'],
         js: ['content/index.iife.js'],
       },
       {
-        matches: ['http://*/*', 'https://*/*', '<all_urls>'],
+        matches: ['<all_urls>'],
         js: ['content-ui/index.iife.js'],
       },
       {
-        matches: ['http://*/*', 'https://*/*', '<all_urls>'],
+        matches: ['<all_urls>'],
         css: ['content.css'], // public folder
       },
     ],
