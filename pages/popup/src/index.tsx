@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { useEffect } from 'react';
 import '@src/index.css';
-// import { PioneerProvider as PP } from '@coinmasters/pioneer-react';
+import { PioneerProvider as PP } from '@coinmasters/pioneer-react';
 import { ChakraProvider, useColorMode } from '@chakra-ui/react';
 import Popup from '@src/Popup';
 import { theme } from '@src/styles/theme';
@@ -28,9 +28,9 @@ function init() {
   root.render(
     <ChakraProvider theme={theme}>
       <ForceDarkMode>
-        {/*<PP>*/}
-        <Popup />
-        {/*</PP>*/}
+        <PP>
+          <Popup />
+        </PP>
       </ForceDarkMode>
     </ChakraProvider>,
   );

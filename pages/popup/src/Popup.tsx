@@ -4,11 +4,18 @@ import { useState, useEffect } from 'react';
 import { requestStorage, approvalStorage } from '@chrome-extension-boilerplate/storage';
 import { withErrorBoundary, withSuspense } from '@chrome-extension-boilerplate/shared';
 import EventsViewer from './components/Events'; // Adjust the import path accordingly
+import { useOnStartApp } from './onStart';
+import { usePioneer } from '@coinmasters/pioneer-react';
 
 const Popup = () => {
+  const onStartApp = useOnStartApp();
   const [signRequest, setSignRequest] = useState<any>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [keepkeyState, setKeepkeyState] = useState<number>(0);
+
+  useEffect(() => {
+    onStartApp();
+  }, []);
 
   useEffect(() => {
     // Fetch the KeepKey state when the popup opens
@@ -69,7 +76,7 @@ const Popup = () => {
         if (events.length === 0) {
           return <Text>Connected and no events.</Text>;
         }
-        return <EventsViewer />;
+        return <EventsViewer usePioneer={usePioneer} />;
       case 3: // busy
         return (
           <Card borderRadius="md" p={4} mb={4}>

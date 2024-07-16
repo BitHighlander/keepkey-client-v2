@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Box, Button, Flex, Heading, Text } from '@chakra-ui/react';
 import { requestStorage, approvalStorage, completedStorage } from '@chrome-extension-boilerplate/storage';
 import Transaction from './Transaction';
+import { Classic } from '@coinmasters/pioneer-lib';
 
-const EventsViewer = () => {
+const EventsViewer = ({ usePioneer }) => {
   const [events, setEvents] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -44,33 +45,33 @@ const EventsViewer = () => {
 
   return (
     <Box>
-      <Heading as="h2" size="lg" mb={4}>
-        Total Events: {events.length}
-      </Heading>
+      {/*<Heading as="h2" size="lg" mb={4}>*/}
+      {/*  Total Events: {events.length}*/}
+      {/*</Heading>*/}
       {events.length > 0 ? (
         <Transaction event={events[currentIndex]} reloadEvents={fetchEvents} />
       ) : (
-        <Text>No events available</Text>
+        <Classic usePioneer={usePioneer}></Classic>
       )}
-      <Flex mt={4}>
-        <Button onClick={previousEvent} mr={2} isDisabled={currentIndex === 0}>
-          Previous
-        </Button>
-        <Button onClick={nextEvent} isDisabled={currentIndex === events.length - 1}>
-          Next
-        </Button>
-      </Flex>
-      <Flex mt={4} justify="space-between">
-        <Button colorScheme="red" onClick={clearRequestEvents}>
-          Clear Request Events
-        </Button>
-        <Button colorScheme="red" onClick={clearApprovalEvents}>
-          Clear Approval Events
-        </Button>
-        <Button colorScheme="red" onClick={clearCompletedEvents}>
-          Clear Completed Events
-        </Button>
-      </Flex>
+      {/*<Flex mt={4}>*/}
+      {/*  <Button onClick={previousEvent} mr={2} isDisabled={currentIndex === 0}>*/}
+      {/*    Previous*/}
+      {/*  </Button>*/}
+      {/*  <Button onClick={nextEvent} isDisabled={currentIndex === events.length - 1}>*/}
+      {/*    Next*/}
+      {/*  </Button>*/}
+      {/*</Flex>*/}
+      {/*<Flex mt={4} justify="space-between">*/}
+      {/*  <Button colorScheme="red" onClick={clearRequestEvents}>*/}
+      {/*    Clear Request Events*/}
+      {/*  </Button>*/}
+      {/*  <Button colorScheme="red" onClick={clearApprovalEvents}>*/}
+      {/*    Clear Approval Events*/}
+      {/*  </Button>*/}
+      {/*  <Button colorScheme="red" onClick={clearCompletedEvents}>*/}
+      {/*    Clear Completed Events*/}
+      {/*  </Button>*/}
+      {/*</Flex>*/}
     </Box>
   );
 };
