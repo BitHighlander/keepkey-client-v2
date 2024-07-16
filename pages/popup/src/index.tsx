@@ -21,7 +21,9 @@ function init() {
   if (!appContainer) {
     throw new Error('Can not find #app-container');
   }
+  //@ts-ignore
   appContainer.style.height = '600px'; // Ensure the container has fixed height
+  //@ts-ignore
   appContainer.style.width = '390px'; // Ensure the container has fixed width
 
   const root = createRoot(appContainer);

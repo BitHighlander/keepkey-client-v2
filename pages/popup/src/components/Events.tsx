@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Button, Flex, Heading, Text } from '@chakra-ui/react';
+import { Box } from '@chakra-ui/react';
 import { requestStorage, approvalStorage, completedStorage } from '@chrome-extension-boilerplate/storage';
 import Transaction from './Transaction';
 import { Classic } from '@coinmasters/pioneer-lib';
 
-const EventsViewer = ({ usePioneer }) => {
+//@ts-ignore
+const EventsViewer = ({ usePioneer }: any) => {
   const [events, setEvents] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -17,31 +18,31 @@ const EventsViewer = ({ usePioneer }) => {
     fetchEvents();
   }, []);
 
-  const nextEvent = () => {
-    if (currentIndex < events.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
-  };
-
-  const previousEvent = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
-  };
-
-  const clearRequestEvents = async () => {
-    await requestStorage.clearEvents();
-    fetchEvents();
-    setCurrentIndex(0);
-  };
-
-  const clearApprovalEvents = async () => {
-    await approvalStorage.clearEvents();
-  };
-
-  const clearCompletedEvents = async () => {
-    await completedStorage.clearEvents();
-  };
+  // const nextEvent = () => {
+  //   if (currentIndex < events.length - 1) {
+  //     setCurrentIndex(currentIndex + 1);
+  //   }
+  // };
+  //
+  // const previousEvent = () => {
+  //   if (currentIndex > 0) {
+  //     setCurrentIndex(currentIndex - 1);
+  //   }
+  // };
+  //
+  // const clearRequestEvents = async () => {
+  //   await requestStorage.clearEvents();
+  //   fetchEvents();
+  //   setCurrentIndex(0);
+  // };
+  //
+  // const clearApprovalEvents = async () => {
+  //   await approvalStorage.clearEvents();
+  // };
+  //
+  // const clearCompletedEvents = async () => {
+  //   await completedStorage.clearEvents();
+  // };
 
   return (
     <Box>

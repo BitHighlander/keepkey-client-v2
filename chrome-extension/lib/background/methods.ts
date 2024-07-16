@@ -52,26 +52,26 @@ const openPopup = function () {
           isPopupOpen = false;
         } else {
           console.log('Popup window created:', window);
+          if (window && window.id !== undefined) {
+            const intervalId = setInterval(() => {
+              chrome.windows.update(window.id as number, { focused: true }, updatedWindow => {
+                if (chrome.runtime.lastError) {
+                  console.error('Error focusing popup:', chrome.runtime.lastError);
+                  clearInterval(intervalId); // Stop the interval if there is an error
+                } else {
+                  console.log('Popup window focused:', updatedWindow);
+                }
+              });
+            }, 600); // Adjust the interval as needed
 
-          // Continuously focus the popup to simulate "always on top"
-          const intervalId = setInterval(() => {
-            chrome.windows.update(window.id, { focused: true }, updatedWindow => {
-              if (chrome.runtime.lastError) {
-                console.error('Error focusing popup:', chrome.runtime.lastError);
-                clearInterval(intervalId); // Stop the interval if there is an error
-              } else {
-                console.log('Popup window focused:', updatedWindow);
+            // Optionally, clear the interval when the popup is closed
+            chrome.windows.onRemoved.addListener(windowId => {
+              if (windowId === window.id) {
+                clearInterval(intervalId);
+                console.log('Popup window closed, interval cleared');
               }
             });
-          }, 600); // Adjust the interval as needed
-
-          // Optionally, clear the interval when the popup is closed
-          chrome.windows.onRemoved.addListener(windowId => {
-            if (windowId === window.id) {
-              clearInterval(intervalId);
-              console.log('Popup window closed, interval cleared');
-            }
-          });
+          }
         }
       },
     );
@@ -80,7 +80,7 @@ const openPopup = function () {
   }
 };
 
-const requireApproval = async function (requestInfo: any, method: string, params: any, KEEPKEY_SDK: any) {
+const requireApproval = async function (requestInfo: any, method: string, params: any) {
   const tag = TAG + ' | requireApproval | ';
   try {
     isPopupOpen = true;
@@ -105,7 +105,7 @@ const requireApproval = async function (requestInfo: any, method: string, params
   }
 };
 
-const requireUnlock = function (requestInfo: any, method: string, params: any, KEEPKEY_SDK: any) {
+const requireUnlock = async function () {
   const tag = TAG + ' | requireUnlock | ';
   try {
     console.log(tag, 'requireUnlock for domain');
@@ -139,7 +139,7 @@ export const handleEthereumRequest = async (
 
     if (!ADDRESS) {
       console.log('Device is not paired!');
-      await requireUnlock(requestInfo, method, params, KEEPKEY_SDK);
+      await requireUnlock();
     }
 
     switch (method) {
@@ -211,7 +211,7 @@ export const handleEthereumRequest = async (
         console.log(tag, 'Calling wallet_switchEthereumChain with:', params);
         const chainId = 'eip155:' + convertHexToDecimalChainId(params[0].chainId);
         console.log(tag, 'Calling wallet_switchEthereumChain chainId:', chainId);
-        const chain = EIP155_CHAINS[chainId];
+        const chain = EIP155_CHAINS[chainId as keyof typeof EIP155_CHAINS];
         if (chain) {
           console.log('Found Chain in EIP155_CHAINS: ', chain);
           CURRENT_PROVIDER.chainId = chain.chainId;
@@ -249,7 +249,7 @@ export const handleEthereumRequest = async (
       case 'eth_signTransaction':
       case 'eth_sendTransaction':
       case 'eth_sign': {
-        await requireApproval(requestInfo, method, params[0], KEEPKEY_SDK);
+        await requireApproval(requestInfo, method, params[0]);
         console.log(tag, 'Returning approval response for method:', method);
         return true;
       }
@@ -265,115 +265,10 @@ export const handleEthereumRequest = async (
   } catch (error) {
     console.error(tag, `Error processing method ${method}:`, error);
 
-    if (error.code && error.message) {
+    if ((error as ProviderRpcError).code && (error as ProviderRpcError).message) {
       throw error;
     } else {
       throw createProviderRpcError(4000, `Unexpected error processing method ${method}`, error);
     }
   }
 };
-
-// export const handleEthereumRequest = async (
-//   requestInfo: any,
-//   method: string,
-//   params: any[],
-//   provider: JsonRpcProvider,
-//   KEEPKEY_SDK: any,
-//   ADDRESS: string,
-// ): Promise<any> => {
-//   const tag = ' | handleEthereumRequest | ';
-//   try {
-//     console.log(tag, 'requestInfo:', requestInfo);
-//     if (!requestInfo) throw Error('Can not validate request! refusing to proceed.');
-//
-//     if (!ADDRESS) {
-//       console.log('Device is not paired!');
-//       await requireUnlock(requestInfo, method, params, KEEPKEY_SDK);
-//     }
-//
-//     switch (method) {
-//       case 'eth_chainId':
-//         // console.log(tag, '(default) Returning eth_chainId:', '0x1');
-//         console.log(tag, 'Returning eth_chainId:', CURRENT_PROVIDER.chainId);
-//         return CURRENT_PROVIDER.chainId;
-//       case 'net_version':
-//         console.log(tag, 'Returning net_version:', '1');
-//         return '0x1';
-//       case 'eth_getBlockByNumber':
-//         console.log(tag, 'Calling eth_getBlockByNumber with:', params);
-//         return await CURRENT_PROVIDER.provider.getBlock(params[0]);
-//       case 'eth_blockNumber':
-//         console.log(tag, 'Calling eth_blockNumber');
-//         return await CURRENT_PROVIDER.provider.getBlockNumber();
-//       case 'eth_getBalance':
-//         console.log(tag, 'Calling eth_getBalance with:', params);
-//         return await CURRENT_PROVIDER.provider.getBalance(params[0], params[1]);
-//       case 'eth_getTransactionReceipt':
-//         console.log(tag, 'Calling eth_getTransactionReceipt with:', params);
-//         return await CURRENT_PROVIDER.provider.getTransactionReceipt(params[0]);
-//       case 'eth_getTransactionByHash':
-//         console.log(tag, 'Calling eth_getTransactionByHash with:', params);
-//         return await CURRENT_PROVIDER.provider.getTransaction(params[0]);
-//       case 'eth_call':
-//         console.log(tag, 'Calling eth_call with:', params);
-//         return await CURRENT_PROVIDER.provider.call(params[0]);
-//       case 'eth_estimateGas':
-//         console.log(tag, 'Calling eth_estimateGas with:', params);
-//         return await CURRENT_PROVIDER.provider.estimateGas(params[0]);
-//       case 'eth_gasPrice':
-//         console.log(tag, 'Calling eth_gasPrice');
-//         return await CURRENT_PROVIDER.provider.getGasPrice();
-//       case 'wallet_addEthereumChain':
-//       case 'wallet_switchEthereumChain': {
-//         console.log(tag, 'Calling wallet_switchEthereumChain with:', params);
-//         const chainId = 'eip155:' + convertHexToDecimalChainId(params[0].chainId);
-//         console.log(tag, 'Calling wallet_switchEthereumChain chainId:', chainId);
-//         const chain = EIP155_CHAINS[chainId];
-//         if (chain) {
-//           console.log('Found Chain in EIP155_CHAINS: ', chain);
-//           CURRENT_PROVIDER.chainId = formatChainId(chain.chainId);
-//           CURRENT_PROVIDER.name = chain.name;
-//           CURRENT_PROVIDER.provider = new JsonRpcProvider(chain.rpc);
-//           console.log(tag, `${method} switched to chain:`, chain.name);
-//           return true;
-//         } else {
-//           console.log('Not Found Chain: ', chainId);
-//           throw createProviderRpcError(4902, 'Chain not found');
-//         }
-//       }
-//       case 'wallet_watchAsset':
-//         console.log(tag, method + ' Returning true');
-//         return true;
-//       case 'wallet_getPermissions':
-//       case 'wallet_requestPermissions':
-//         return [{ parentCapability: 'eth_accounts' }];
-//       case 'eth_accounts':
-//         console.log(tag, 'Returning eth_accounts:', [ADDRESS]);
-//         return [ADDRESS];
-//       case 'eth_requestAccounts':
-//         console.log(tag, 'Returning eth_requestAccounts:', [ADDRESS]);
-//         return [ADDRESS];
-//       case 'eth_sendRawTransaction':
-//       case 'eth_signTypedData_v3':
-//       case 'eth_signTransaction':
-//       case 'eth_sendTransaction':
-//       case 'eth_sign':
-//         await requireApproval(requestInfo, method, params[0], KEEPKEY_SDK);
-//         return true;
-//       case 'eth_getEncryptionPublicKey':
-//       case 'eth_signTypedData_v4':
-//         throw createProviderRpcError(4200, 'Method eth_signTypedData_v4 not supported');
-//       default:
-//         console.log(tag, `Method ${method} not supported`);
-//         throw createProviderRpcError(4200, `Method ${method} not supported`);
-//     }
-//   } catch (error) {
-//     console.error(tag, `Error processing method ${method}:`, error);
-//
-//     if (error.code && error.message) {
-//       throw error;
-//     } else {
-//       throw createProviderRpcError(4000, `Unexpected error processing method ${method}`, error);
-//     }
-//   }
-// };

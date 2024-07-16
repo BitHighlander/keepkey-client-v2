@@ -1,6 +1,4 @@
 import 'webextension-polyfill';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
 import packageJson from '../../package.json'; // Adjust the path as needed
 import { onStartKeepkey } from './keepkey';
 import { handleEthereumRequest } from './methods';

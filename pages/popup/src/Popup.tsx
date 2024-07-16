@@ -49,6 +49,7 @@ const Popup = () => {
         setEvents(prevEvents => {
           const updatedEvents = [...prevEvents, newEvent];
           // Update the events in storage
+          //@ts-ignore
           requestStorage.addEvent(newEvent);
           return updatedEvents;
         });

@@ -13,6 +13,10 @@ type Event = {
   timestamp: string;
 };
 
+type StorageChange = {
+  newValue?: Event;
+};
+
 const processApprovedEvent = async (event: Event, KEEPKEY_SDK: any, ADDRESS: string) => {
   try {
     console.log(TAG, 'Processing approved event:', event);
@@ -50,7 +54,7 @@ const processApprovedEvent = async (event: Event, KEEPKEY_SDK: any, ADDRESS: str
 export const listenForApproval = (KEEPKEY_SDK: any, ADDRESS: string) => {
   const tag = TAG + ' | listenForApproval | ';
 
-  chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+  chrome.runtime.onMessage.addListener(async (message: any, sender: any, sendResponse: any) => {
     try {
       if (message.action === 'eth_sign_response' && message.response.decision === 'accept') {
         const approvedEventId = message.response.eventId;
@@ -75,23 +79,27 @@ export const listenForApproval = (KEEPKEY_SDK: any, ADDRESS: string) => {
     }
   });
 
-  approvalStorage.subscribe(async changes => {
-    try {
-      if (changes && typeof changes === 'object') {
-        for (const [key, change] of Object.entries(changes)) {
-          if (change.newValue) {
-            const event: Event = change.newValue;
-            if (event.status === 'approval') {
-              console.log(tag, 'Processing approval event:', event);
-              await processApprovedEvent(event, KEEPKEY_SDK, ADDRESS);
+  approvalStorage.subscribe(
+    // @ts-ignore
+    async (changes: Record<string, StorageChange>) => {
+      try {
+        if (changes && typeof changes === 'object') {
+          for (const [key, change] of Object.entries(changes)) {
+            const changeTyped = change as StorageChange;
+            if (changeTyped.newValue) {
+              const event: Event = changeTyped.newValue;
+              if (event.status === 'approval') {
+                console.log(tag, 'Processing approval event:', event);
+                await processApprovedEvent(event, KEEPKEY_SDK, ADDRESS);
+              }
             }
           }
+        } else {
+          console.warn(tag, 'Invalid changes object:', changes);
         }
-      } else {
-        console.warn(tag, 'Invalid changes object:', changes);
+      } catch (error) {
+        console.error(tag, 'Error handling storage changes:', error);
       }
-    } catch (error) {
-      console.error(tag, 'Error handling storage changes:', error);
-    }
-  });
+    },
+  );
 };

@@ -19,3 +19,6 @@
 
 # compiled
 chrome-extension/public/manifest.json
+
+dist.crx
+dist.pem
