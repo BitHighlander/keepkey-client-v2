@@ -143,7 +143,7 @@ chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: a
   // console.log(tag, 'message:', message);
 
   if (message.type === 'ETH_REQUEST') {
-    console.log(tag, 'Background script received ETH_REQUEST:', message);
+    // console.log(tag, 'Background script received ETH_REQUEST:', message);
     const { method, params, requestInfo } = message;
     // console.log(tag, 'requestInfo:', requestInfo);
     // console.log(tag, 'method:', method);

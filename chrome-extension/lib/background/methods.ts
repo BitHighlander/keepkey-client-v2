@@ -134,7 +134,7 @@ export const handleEthereumRequest = async (
 ): Promise<any> => {
   const tag = ' | handleEthereumRequest | ';
   try {
-    console.log(tag, 'requestInfo:', requestInfo);
+    // console.log(tag, 'requestInfo:', requestInfo);
     if (!requestInfo) throw Error('Cannot validate request! Refusing to proceed.');
 
     if (!ADDRESS) {
@@ -181,12 +181,18 @@ export const handleEthereumRequest = async (
       case 'eth_call': {
         console.log(tag, 'Calling eth_call with:', params);
 
-        const calls = await Promise.all(params.slice(1).map(p => CURRENT_PROVIDER.provider.call(p, params[0])));
+        const callParams = params[0]; // The call object
+        const blockParam = params[1] || 'latest'; // The block parameter, default to 'latest' if not provided
 
-        const result = calls.length > 1 ? calls : calls[0];
-        console.log(tag, 'Returning eth_call result:', result);
+        try {
+          const result = await CURRENT_PROVIDER.provider.call(callParams, blockParam);
+          console.log(tag, 'Returning eth_call result:', result);
 
-        return result;
+          return result;
+        } catch (error) {
+          console.error(tag, 'Error during eth_call:', error);
+          throw error;
+        }
       }
       case 'eth_estimateGas': {
         const estimateGas = await CURRENT_PROVIDER.provider.estimateGas(params[0]);
@@ -198,6 +204,8 @@ export const handleEthereumRequest = async (
         console.log(tag, 'Returning eth_gasPrice:', gasPrice);
         return gasPrice;
       }
+      case 'wallet_getSnaps':
+        return [];
       case 'wallet_addEthereumChain':
       case 'wallet_switchEthereumChain': {
         console.log(tag, 'Calling wallet_switchEthereumChain with:', params);
