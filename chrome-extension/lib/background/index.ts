@@ -1,5 +1,4 @@
 import 'webextension-polyfill';
-import { exampleThemeStorage } from '@chrome-extension-boilerplate/storage';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 import packageJson from '../../package.json'; // Adjust the path as needed
@@ -45,6 +44,63 @@ const EIP155_CHAINS = {
     rpc: 'https://eth.llamarpc.com',
     namespace: 'eip155',
   },
+  'eip155:43114': {
+    chainId: 43114,
+    name: 'Avalanche C-Chain',
+    logo: '/chain-logos/eip155-43113.png',
+    rgb: '232, 65, 66',
+    rpc: 'https://api.avax.network/ext/bc/C/rpc',
+    namespace: 'eip155',
+  },
+  'eip155:137': {
+    chainId: 137,
+    name: 'Polygon',
+    logo: '/chain-logos/eip155-137.png',
+    rgb: '130, 71, 229',
+    rpc: 'https://polygon-rpc.com/',
+    namespace: 'eip155',
+  },
+  'eip155:10': {
+    chainId: 10,
+    name: 'Optimism',
+    logo: '/chain-logos/eip155-10.png',
+    rgb: '235, 0, 25',
+    rpc: 'https://mainnet.optimism.io',
+    namespace: 'eip155',
+  },
+  'eip155:324': {
+    chainId: 324,
+    name: 'zkSync Era',
+    logo: '/chain-logos/eip155-324.svg',
+    rgb: '242, 242, 242',
+    rpc: 'https://mainnet.era.zksync.io/',
+    namespace: 'eip155',
+  },
+  'eip155:8453': {
+    chainId: 8453,
+    name: 'Base',
+    logo: '/chain-logos/base.png',
+    rgb: '242, 242, 242',
+    rpc: 'https://mainnet.base.org',
+    namespace: 'eip155',
+  },
+  //
+  'eip155:42161': {
+    chainId: 8453,
+    name: 'Arbitrum',
+    logo: '/chain-logos/arbitrum.png',
+    rgb: '4, 100, 214',
+    rpc: 'https://api.zan.top/node/v1/arb/one/public',
+    namespace: 'eip155',
+  },
+  'eip155:100': {
+    chainId: 100,
+    name: 'Gnosis',
+    logo: '/chain-logos/gnosis.png',
+    rgb: '33, 186, 69',
+    rpc: 'https://api.zan.top/node/v1/arb/one/public',
+    namespace: 'eip155',
+  },
 };
 const provider = new JsonRpcProvider(EIP155_CHAINS['eip155:1'].rpc);
 
@@ -67,9 +123,9 @@ const onStart = async function () {
 
     // Set addresses
     ADDRESS = address;
-    console.log(tag, '**** keepkey: ', keepkey);
+    // console.log(tag, '**** keepkey: ', keepkey);
     KEEPKEY_SDK = keepkey.ETH.keepkeySdk;
-    console.log(tag, 'keepkeySdk: ', KEEPKEY_SDK);
+    // console.log(tag, 'keepkeySdk: ', KEEPKEY_SDK);
 
     // Start listening for approval events
     listenForApproval(KEEPKEY_SDK, ADDRESS);
@@ -84,15 +140,15 @@ onStart();
 // Listen for messages from the content script
 chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: any) => {
   const tag = TAG + ' | chrome.runtime.onMessage | ';
-  console.log(tag, 'message:', message);
+  // console.log(tag, 'message:', message);
 
   if (message.type === 'ETH_REQUEST') {
     console.log(tag, 'Background script received ETH_REQUEST:', message);
     const { method, params, requestInfo } = message;
-    console.log(tag, 'requestInfo:', requestInfo);
-    console.log(tag, 'method:', method);
-    console.log(tag, 'params:', params);
-    console.log(tag, 'ADDRESS:', ADDRESS);
+    // console.log(tag, 'requestInfo:', requestInfo);
+    // console.log(tag, 'method:', method);
+    // console.log(tag, 'params:', params);
+    // console.log(tag, 'ADDRESS:', ADDRESS);
 
     handleEthereumRequest(requestInfo, method, params, provider, KEEPKEY_SDK, ADDRESS)
       .then(result => {
