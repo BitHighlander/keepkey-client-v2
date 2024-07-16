@@ -123,9 +123,9 @@ const onStart = async function () {
 
     // Set addresses
     ADDRESS = address;
-    console.log(tag, '**** keepkey: ', keepkey);
+    // console.log(tag, '**** keepkey: ', keepkey);
     KEEPKEY_SDK = keepkey.ETH.keepkeySdk;
-    console.log(tag, 'keepkeySdk: ', KEEPKEY_SDK);
+    // console.log(tag, 'keepkeySdk: ', KEEPKEY_SDK);
 
     // Start listening for approval events
     listenForApproval(KEEPKEY_SDK, ADDRESS);
@@ -140,15 +140,15 @@ onStart();
 // Listen for messages from the content script
 chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: any) => {
   const tag = TAG + ' | chrome.runtime.onMessage | ';
-  console.log(tag, 'message:', message);
+  // console.log(tag, 'message:', message);
 
   if (message.type === 'ETH_REQUEST') {
     console.log(tag, 'Background script received ETH_REQUEST:', message);
     const { method, params, requestInfo } = message;
-    console.log(tag, 'requestInfo:', requestInfo);
-    console.log(tag, 'method:', method);
-    console.log(tag, 'params:', params);
-    console.log(tag, 'ADDRESS:', ADDRESS);
+    // console.log(tag, 'requestInfo:', requestInfo);
+    // console.log(tag, 'method:', method);
+    // console.log(tag, 'params:', params);
+    // console.log(tag, 'ADDRESS:', ADDRESS);
 
     handleEthereumRequest(requestInfo, method, params, provider, KEEPKEY_SDK, ADDRESS)
       .then(result => {

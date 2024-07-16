@@ -67,12 +67,12 @@
   }
 
   function mountEthereum() {
-    const tag = TAG + ' | mountEthereum | ';
+    const tag = TAG + ' | window.ethereum | ';
     const ethereum = {
       isMetaMask: true,
       isKeepKey: true,
       request: async ({ method, params }) => {
-        console.log(tag, 'ethereum.request called with:', method, params);
+        // console.log(tag, 'ethereum.request called with:', method, params);
         return ethereumRequest(method, params);
       },
       send: (payload, callback) => {
