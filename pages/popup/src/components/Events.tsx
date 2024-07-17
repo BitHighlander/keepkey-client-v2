@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Button, Flex, Heading, Text } from '@chakra-ui/react';
+import { Box, Button, Flex, Heading, Text, Image } from '@chakra-ui/react';
 import { requestStorage, approvalStorage, completedStorage } from '@chrome-extension-boilerplate/storage';
 import Transaction from './Transaction';
 
 const EventsViewer = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentProvider, setCurrentProvider] = useState<any>(null);
 
   const fetchEvents = async () => {
     const storedEvents = await requestStorage.getEvents();
@@ -14,6 +15,18 @@ const EventsViewer = () => {
 
   useEffect(() => {
     fetchEvents();
+  }, []);
+
+  const fetchProvider = () => {
+    chrome.runtime.sendMessage({ type: 'GET_PROVIDER' }, response => {
+      if (response && response.provider) {
+        setCurrentProvider(response.provider);
+      }
+    });
+  };
+
+  useEffect(() => {
+    fetchProvider();
   }, []);
 
   const nextEvent = () => {
@@ -45,7 +58,15 @@ const EventsViewer = () => {
   return (
     <Box>
       <Heading as="h2" size="lg" mb={4}>
-        Total Events: {events.length}
+        {currentProvider ? (
+          <>
+            <Image src={currentProvider.logo} alt={currentProvider.name} boxSize="20px" mr={2} />
+            Current chain: {currentProvider.name}
+          </>
+        ) : (
+          'Loading provider...'
+        )}
+        <Text>Total Events: {events.length}</Text>
       </Heading>
       {events.length > 0 ? (
         <Transaction event={events[currentIndex]} reloadEvents={fetchEvents} />

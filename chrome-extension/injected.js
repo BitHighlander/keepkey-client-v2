@@ -137,7 +137,6 @@
     window.addEventListener('eip6963:requestProvider', () => {
       announceProvider();
     });
-
     announceProvider();
 
     Object.defineProperty(window, 'ethereum', {
