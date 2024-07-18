@@ -16,6 +16,20 @@ const CURRENT_PROVIDER: any = {
   fallbacks: [],
 };
 
+interface ChainInfo {
+  chainId: string;
+  name: string;
+  logo: string;
+  rgb: string;
+  rpc: string;
+  namespace: string;
+  caip: string;
+}
+
+interface Eip155Chains {
+  [key: string]: ChainInfo;
+}
+
 type Event = {
   id: string;
   type: string;
@@ -55,26 +69,6 @@ const openPopup = function () {
           isPopupOpen = false;
         } else {
           console.log('Popup window created:', window);
-          if (window && window.id !== undefined) {
-            const intervalId = setInterval(() => {
-              chrome.windows.update(window.id as number, { focused: true }, updatedWindow => {
-                if (chrome.runtime.lastError) {
-                  console.error('Error focusing popup:', chrome.runtime.lastError);
-                  clearInterval(intervalId); // Stop the interval if there is an error
-                } else {
-                  console.log('Popup window focused:', updatedWindow);
-                }
-              });
-            }, 600); // Adjust the interval as needed
-
-            // Optionally, clear the interval when the popup is closed
-            chrome.windows.onRemoved.addListener(windowId => {
-              if (windowId === window.id) {
-                clearInterval(intervalId);
-                console.log('Popup window closed, interval cleared');
-              }
-            });
-          }
         }
       },
     );
