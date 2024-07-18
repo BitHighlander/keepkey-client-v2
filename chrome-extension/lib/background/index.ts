@@ -150,6 +150,11 @@ chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: a
 
     handleEthereumRequest(requestInfo, method, params, provider, KEEPKEY_SDK, ADDRESS)
       .then(result => {
+        // console.log(tag, 'result:', result);
+        const receivedResultString = JSON.stringify(result);
+        const receivedResultLength = receivedResultString.length;
+        console.log(tag, '(STEP 2) receivedResultString:', receivedResultString);
+        console.log(tag, '(STEP 2) receivedResultLength:', receivedResultLength);
         sendResponse(result);
       })
       .catch(error => {

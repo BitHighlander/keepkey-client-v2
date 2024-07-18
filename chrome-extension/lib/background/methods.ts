@@ -1,6 +1,7 @@
 import { JsonRpcProvider } from 'ethers';
 import { requestStorage, approvalStorage } from '@chrome-extension-boilerplate/storage';
-import { signMessage, signTransaction, signTypedData, broadcastTransaction, sendTransaction } from './sign';
+import axios from 'axios';
+// import { signMessage, signTransaction, signTypedData, broadcastTransaction, sendTransaction } from './sign';
 import { v4 as uuidv4 } from 'uuid';
 import { EIP155_CHAINS } from './chains';
 const TAG = ' | METHODS | ';
@@ -8,7 +9,9 @@ const DOMAIN_WHITE_LIST = [];
 
 const CURRENT_PROVIDER: any = {
   chainId: '0x1',
+  blockExplorerUrls: ['https://etherscan.io'],
   name: 'Ethereum',
+  providerUrl: 'https://eth.llamarpc.com',
   provider: new JsonRpcProvider('https://eth.llamarpc.com'),
   fallbacks: [],
 };
@@ -116,10 +119,6 @@ const requireUnlock = async function () {
   }
 };
 
-const formatChainId = (chainId: number): string => {
-  return '0x' + chainId.toString(16);
-};
-
 const convertHexToDecimalChainId = (hexChainId: string): number => {
   return parseInt(hexChainId, 16);
 };
@@ -144,9 +143,8 @@ export const handleEthereumRequest = async (
 
     switch (method) {
       case 'eth_chainId': {
-        const chainId = formatChainId(CURRENT_PROVIDER.chainId);
-        console.log(tag, 'Returning eth_chainId:', chainId);
-        return chainId;
+        console.log(tag, 'Returning eth_chainId:', CURRENT_PROVIDER.chainId);
+        return CURRENT_PROVIDER.chainId;
       }
       case 'net_version': {
         const netVersion = CURRENT_PROVIDER.chainId.toString();
@@ -209,20 +207,82 @@ export const handleEthereumRequest = async (
       case 'wallet_addEthereumChain':
       case 'wallet_switchEthereumChain': {
         console.log(tag, 'Calling wallet_switchEthereumChain with:', params);
+        if (!params || !params[0] || !params[0].chainId) throw new Error('Invalid chainId (Required)');
         const chainId = 'eip155:' + convertHexToDecimalChainId(params[0].chainId);
         console.log(tag, 'Calling wallet_switchEthereumChain chainId:', chainId);
-        const chain = EIP155_CHAINS[chainId as keyof typeof EIP155_CHAINS];
-        if (chain) {
-          console.log('Found Chain in EIP155_CHAINS: ', chain);
-          CURRENT_PROVIDER.chainId = chain.chainId;
-          CURRENT_PROVIDER.name = chain.name;
-          CURRENT_PROVIDER.provider = new JsonRpcProvider(chain.rpc);
-          console.log(tag, `${method} switched to chain:`, chain.name);
-          return true;
+        if (params && params[0] && params[0].rpcUrls && params[0].rpcUrls[0]) {
+          console.log(tag, 'Given Parmas for custom chain addition!');
+          /*
+              Example from thechainlist.org:
+              {
+                "blockExplorerUrls": ["https://bscscan.com"],
+                "chainId": "0x38",
+                "chainName": "BNB Chain LlamaNodes",
+                "nativeCurrency": {
+                  "name": "BNB Chain Native Token",
+                  "symbol": "BNB",
+                  "decimals": 18
+                },
+                "rpcUrls": [
+                  "https://binance.llamarpc.com",
+                ]
+              }
+          */
+          //blockExplorerUrls
+          CURRENT_PROVIDER.blockExplorerUrls = params[0].blockExplorerUrls;
+          CURRENT_PROVIDER.chainId = params[0].chainId;
+          CURRENT_PROVIDER.caip = `eip155:${parseInt(params[0].chainId, 16)}/slip44:60`;
+          CURRENT_PROVIDER.name = params[0].chainName;
+          CURRENT_PROVIDER.nativeCurrency = params[0].nativeCurrency;
+          CURRENT_PROVIDER.providerUrl = params[0].rpcUrls[0];
+          CURRENT_PROVIDER.provider = new JsonRpcProvider(params[0].rpcUrls[0]);
+
+          //TODO check if loaded locally
+          //if new send to pioneer api
         } else {
-          console.log('Not Found Chain: ', chainId);
-          throw createProviderRpcError(4902, 'Chain not found');
+          console.log(tag, 'chain switch (must be a known chain)');
+          /*
+              Assuming ONLY chainId is provided
+          */
+          const chainIdToFind = params[0].chainId;
+          console.log(tag, 'chainIdToFind:', chainIdToFind);
+          let chainFound = false;
+
+          for (const key of Object.keys(EIP155_CHAINS)) {
+            if (EIP155_CHAINS[key].chainId === chainIdToFind) {
+              CURRENT_PROVIDER.chainId = params[0].chainId;
+              CURRENT_PROVIDER.caip = EIP155_CHAINS[key].caip;
+              CURRENT_PROVIDER.name = EIP155_CHAINS[key].name;
+              CURRENT_PROVIDER.providerUrl = EIP155_CHAINS[key].rpc;
+              CURRENT_PROVIDER.provider = new JsonRpcProvider(EIP155_CHAINS[key].rpc);
+              chainFound = true;
+              break;
+            }
+          }
+
+          if (!chainFound) {
+            throw new Error(`Chain with chainId ${chainIdToFind} not found.`);
+          }
         }
+        // const chain = EIP155_CHAINS[chainId];
+        //get market info by caip
+        if (CURRENT_PROVIDER.caip) {
+          // const marketInfo = await axios.get(`https://pioneers.dev/api/v1/assetByCaip/${CURRENT_PROVIDER.caip}`);
+          // console.log(tag, 'Market info:', marketInfo.data);
+          // CURRENT_PROVIDER.marketInfo = marketInfo.data;
+        }
+        // if (chain) {
+        //   console.log('Found Chain in EIP155_CHAINS: ', chain);
+        //   CURRENT_PROVIDER.chainId = chain.chainId;
+        //   CURRENT_PROVIDER.name = chain.name;
+        //   CURRENT_PROVIDER.provider = new JsonRpcProvider(chain.rpc);
+        //   console.log(tag, `${method} switched to chain:`, chain.name);
+        //   return true;
+        // } else {
+        //   console.log('Not Found Chain: ', chainId);
+        //   throw createProviderRpcError(4902, 'Chain not found');
+        // }
+        return true;
       }
       case 'wallet_watchAsset': {
         console.log(tag, method + ' Returning true');
@@ -272,3 +332,16 @@ export const handleEthereumRequest = async (
     }
   }
 };
+
+// Handle message to get the current provider
+chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: any) => {
+  const tag = TAG + ' | chrome.runtime.onMessage | ';
+
+  if (message.type === 'GET_PROVIDER') {
+    sendResponse({ provider: CURRENT_PROVIDER });
+    return true;
+  }
+
+  // Return false if the message type is not handled
+  return false;
+});
