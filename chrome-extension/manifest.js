@@ -27,7 +27,7 @@ const manifest = Object.assign(
     version: packageJson.version,
     description: '__MSG_extensionDescription__',
     permissions: ['storage'].concat(sidePanelConfig.permissions),
-    options_page: 'options/index.html',
+    //options_page: 'options/index.html',
     background: {
       service_worker: 'background.iife.js',
       type: 'module',
@@ -43,6 +43,10 @@ const manifest = Object.assign(
       {
         matches: ['<all_urls>'],
         js: ['content/index.iife.js'],
+      },
+      {
+        matches: ['<all_urls>'],
+        js: ['injected.js'],
       },
       {
         matches: ['<all_urls>'],
