@@ -12,7 +12,7 @@
     "build": "turbo build",
     "build:firefox": "cross-env __FIREFOX__=true turbo build",
     "dev-server": "pnpm -F hmr ready && pnpm -F hmr dev",
-    "dev": "turbo ready && turbo watch dev --concurrency 20",
+    "dev": "turbo run dev",
     "dev:firefox": "turbo ready && cross-env __FIREFOX__=true turbo watch dev --concurrency 20",
     "test": "turbo test",
     "type-check": "turbo type-check",
@@ -51,7 +51,7 @@
     "rimraf": "^5.0.7",
     "tailwindcss": "^3.4.4",
     "tslib": "^2.6.3",
-    "turbo": "^2.0.6",
+    "turbo": "^2.0.9",
     "typescript": "5.4",
     "vite": "^5.2.11"
   },
