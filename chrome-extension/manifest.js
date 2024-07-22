@@ -46,6 +46,10 @@ const manifest = Object.assign(
       },
       {
         matches: ['<all_urls>'],
+        js: ['injected.js'],
+      },
+      {
+        matches: ['<all_urls>'],
         js: ['content-ui/index.iife.js'],
       },
       {
