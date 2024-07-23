@@ -121,10 +121,9 @@ const onStart = async function () {
 
     // Set addresses
     ADDRESS = address;
-    // console.log(tag, '**** keepkey: ', keepkey);
+    console.log(tag, '**** keepkey: ', keepkey);
     KEEPKEY_SDK = keepkey.ETH.keepkeySdk;
     // console.log(tag, 'keepkeySdk: ', KEEPKEY_SDK);
-
     // Start listening for approval events
     listenForApproval(KEEPKEY_SDK, ADDRESS);
   } catch (e) {
@@ -134,6 +133,9 @@ const onStart = async function () {
   }
 };
 onStart();
+
+//Poll for keepkey status
+// let checkStatus =
 
 // Listen for messages from the content script
 chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: any) => {
@@ -166,6 +168,14 @@ chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: a
 
   if (message.type === 'GET_KEEPKEY_STATE') {
     sendResponse({ state: KEEPKEY_STATE });
+    return true;
+  }
+
+  if (message.type === 'ON_START') {
+    onStart();
+    setTimeout(() => {
+      sendResponse({ state: KEEPKEY_STATE });
+    }, 15000); // 15000 milliseconds = 15 seconds
     return true;
   }
 

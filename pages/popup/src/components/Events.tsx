@@ -59,30 +59,30 @@ const EventsViewer = ({ usePioneer }: any) => {
 
   return (
     <Box>
-      <Heading as="h2" size="lg" mb={4}>
-        {currentProvider ? (
-          <>
-            <Image src={currentProvider.logo} alt={currentProvider.name} boxSize="20px" mr={2} />
-            Current chain: {currentProvider.name}
-          </>
-        ) : (
-          'Loading provider...'
-        )}
-        <Text>Total Events: {events.length}</Text>
-      </Heading>
+      {/*<Heading as="h2" size="lg" mb={4}>*/}
+      {/*  {currentProvider ? (*/}
+      {/*    <>*/}
+      {/*      <Image src={currentProvider.logo} alt={currentProvider.name} boxSize="20px" mr={2} />*/}
+      {/*      Current chain: {currentProvider.name}*/}
+      {/*    </>*/}
+      {/*  ) : (*/}
+      {/*    'Loading provider...'*/}
+      {/*  )}*/}
+      {/*  <Text>Total Events: {events.length}</Text>*/}
+      {/*</Heading>*/}
       {events.length > 0 ? (
         <Transaction event={events[currentIndex]} reloadEvents={fetchEvents} />
       ) : (
         <Classic usePioneer={usePioneer}></Classic>
       )}
-      <Flex mt={4}>
-        <Button onClick={previousEvent} mr={2} isDisabled={currentIndex === 0}>
-          Previous
-        </Button>
-        <Button onClick={nextEvent} isDisabled={currentIndex === events.length - 1}>
-          Next
-        </Button>
-      </Flex>
+      {/*<Flex mt={4}>*/}
+      {/*  <Button onClick={previousEvent} mr={2} isDisabled={currentIndex === 0}>*/}
+      {/*    Previous*/}
+      {/*  </Button>*/}
+      {/*  <Button onClick={nextEvent} isDisabled={currentIndex === events.length - 1}>*/}
+      {/*    Next*/}
+      {/*  </Button>*/}
+      {/*</Flex>*/}
       <Flex>
         {/*<Button colorScheme="red" onClick={clearRequestEvents}>*/}
         {/*  Clear Request Events*/}

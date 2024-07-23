@@ -19,7 +19,7 @@ const ForceDarkMode = ({ children }: { children: React.ReactNode }) => {
 function init() {
   const appContainer = document.querySelector('#app-container');
   if (!appContainer) {
-    throw new Error('Can not find #app-container');
+    throw new Error('Cannot find #app-container');
   }
   //@ts-ignore
   appContainer.style.height = '600px'; // Ensure the container has fixed height
