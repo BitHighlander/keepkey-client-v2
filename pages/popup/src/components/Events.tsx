@@ -9,7 +9,9 @@ import {
 import Transaction from './Transaction';
 import { Classic } from '@coinmasters/pioneer-lib';
 
-const EventsViewer = ({ usePioneer, app }: any) => {
+const EventsViewer = ({ usePioneer }: any) => {
+  const { state } = usePioneer();
+  const { app, assetContext, context } = state;
   const [events, setEvents] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentProvider, setCurrentProvider] = useState<any>(null);
@@ -27,7 +29,7 @@ const EventsViewer = ({ usePioneer, app }: any) => {
         const storedContext = await assetContextStorage.get();
         console.log('**** storedContext: ', storedContext);
         if (!storedContext || storedContext.provider !== response.provider) {
-          await assetContextStorage.updateContext('provider', response.provider);
+          // await assetContextStorage.updateContext('provider', response.provider);
           if (app) app.setAssetContext(response);
           setCurrentProvider(response.provider);
         }
@@ -39,10 +41,13 @@ const EventsViewer = ({ usePioneer, app }: any) => {
     console.log('************ TESTING ************');
     try {
       const context = await assetContextStorage.get();
-      console.log('**** storedContext: ', context.provider);
-      console.log('**** storedContext: ', context.provider.caip);
+      console.log('**** storedContext: ', context);
       if (app) {
-        app.setAssetContext(context.provider);
+        if (context) {
+          app.setAssetContext(context);
+        } else {
+          app.setAssetContext({ caip: 'eip155:1/slip44:60' });
+        }
       } else {
         console.error('Unable to set asset context. App is not defined.');
       }
@@ -102,17 +107,6 @@ const EventsViewer = ({ usePioneer, app }: any) => {
       ) : (
         <Classic usePioneer={usePioneer}></Classic>
       )}
-      <Flex>
-        {/*<Button colorScheme="red" onClick={clearRequestEvents}>*/}
-        {/*  Clear Request Events*/}
-        {/*</Button>*/}
-        {/*<Button colorScheme="red" onClick={clearApprovalEvents}>*/}
-        {/*  Clear Approval Events*/}
-        {/*</Button>*/}
-        {/*<Button colorScheme="red" onClick={clearCompletedEvents}>*/}
-        {/*  Clear Completed Events*/}
-        {/*</Button>*/}
-      </Flex>
     </Box>
   );
 };

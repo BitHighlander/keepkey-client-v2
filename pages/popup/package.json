@@ -21,10 +21,10 @@
     "@chakra-ui/react": "^2.8.2",
     "@chrome-extension-boilerplate/shared": "workspace:*",
     "@chrome-extension-boilerplate/storage": "workspace:*",
-    "@coinmasters/pioneer-lib": "^0.1.55",
-    "@coinmasters/pioneer-react": "^0.7.44",
-    "@coinmasters/types": "^4.7.44",
-    "@coinmasters/wallet-keepkey": "^13.0.44"
+    "@coinmasters/pioneer-lib": "^0.1.56",
+    "@coinmasters/pioneer-react": "^0.7.45",
+    "@coinmasters/types": "^4.7.45",
+    "@coinmasters/wallet-keepkey": "^13.0.45"
   },
   "devDependencies": {
     "@chrome-extension-boilerplate/hmr": "workspace:*",

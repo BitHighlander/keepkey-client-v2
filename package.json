@@ -1,6 +1,6 @@
 {
   "name": "keepkey client",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "chrome extension for keepkey",
   "license": "MIT",
   "repository": {

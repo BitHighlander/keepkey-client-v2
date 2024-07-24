@@ -1,5 +1,5 @@
 import { JsonRpcProvider } from 'ethers';
-import { requestStorage, approvalStorage } from '@chrome-extension-boilerplate/storage';
+import { requestStorage, approvalStorage, assetContextStorage } from '@chrome-extension-boilerplate/storage';
 import axios from 'axios';
 // import { signMessage, signTransaction, signTypedData, broadcastTransaction, sendTransaction } from './sign';
 import { v4 as uuidv4 } from 'uuid';
@@ -10,6 +10,7 @@ const DOMAIN_WHITE_LIST = [];
 
 const CURRENT_PROVIDER: any = {
   chainId: '0x1',
+  caip: 'eip155:1/slip44:60',
   blockExplorerUrls: ['https://etherscan.io'],
   name: 'Ethereum',
   providerUrl: 'https://eth.llamarpc.com',
@@ -141,7 +142,6 @@ const convertHexToDecimalChainId = (hexChainId: string): number => {
 const sanitizeChainId = (chainId: string): string => {
   return chainId.replace(/^0x0x/, '0x');
 };
-
 export const handleEthereumRequest = async (
   requestInfo: any,
   method: string,
@@ -287,7 +287,8 @@ export const handleEthereumRequest = async (
           // CURRENT_PROVIDER.marketInfo = marketInfo.data;
         }
         //push to local storage
-
+        chrome.runtime.sendMessage({ type: 'PROVIDER_CHANGED', provider: CURRENT_PROVIDER });
+        assetContextStorage.updateContext(CURRENT_PROVIDER);
         // if (chain) {
         //   console.log('Found Chain in EIP155_CHAINS: ', chain);
         //   CURRENT_PROVIDER.chainId = chain.chainId;

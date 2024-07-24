@@ -13,6 +13,7 @@ const Popup = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [keepkeyState, setKeepkeyState] = useState<number>(0);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
+  const [currentProvider, setCurrentProvider] = useState<any>(null);
 
   useEffect(() => {
     console.log('Starting app...');
@@ -99,6 +100,9 @@ const Popup = () => {
       } else if (message.action === 'UPDATE_KEEPKEY_STATE' && message.state !== undefined) {
         console.log('Updating KeepKey state:', message.state);
         setKeepkeyState(message.state);
+      } else if (message.type === 'PROVIDER_CHANGED' && message.provider) {
+        console.log('Provider changed:', message.provider);
+        setCurrentProvider(message.provider);
       }
     };
 
@@ -135,7 +139,7 @@ const Popup = () => {
           </div>
         );
       case 2: // connected
-        return <EventsViewer usePioneer={usePioneer} />;
+        return <EventsViewer usePioneer={usePioneer} app={{ currentProvider }} />;
       case 3: // busy
         return (
           <Card borderRadius="md" p={4} mb={4}>

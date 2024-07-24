@@ -26,7 +26,7 @@ type AssetContext = {
 };
 
 type AssetContextStorage = BaseStorage<AssetContext> & {
-  updateContext: (key: string, value: any) => Promise<void>;
+  updateContext: (newContext: AssetContext) => Promise<void>;
   clearContext: () => Promise<void>;
 };
 
@@ -124,8 +124,8 @@ const createAssetContextStorage = (): AssetContextStorage => {
 
   return {
     ...storage,
-    updateContext: async (key: string, value: any) => {
-      await storage.set(prev => ({ ...prev, [key]: value }));
+    updateContext: async (newContext: AssetContext) => {
+      await storage.set(prev => ({ ...prev, ...newContext }));
     },
     clearContext: async () => {
       await storage.set(() => ({}));
