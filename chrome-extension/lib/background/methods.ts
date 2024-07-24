@@ -218,8 +218,6 @@ export const handleEthereumRequest = async (
         console.log(tag, 'Returning eth_gasPrice:', gasPrice);
         return gasPrice;
       }
-      case 'wallet_getSnaps':
-        return [];
       case 'wallet_addEthereumChain':
       case 'wallet_switchEthereumChain': {
         console.log(tag, 'Calling wallet_switchEthereumChain with:', params);
