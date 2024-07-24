@@ -286,6 +286,8 @@ export const handleEthereumRequest = async (
           // console.log(tag, 'Market info:', marketInfo.data);
           // CURRENT_PROVIDER.marketInfo = marketInfo.data;
         }
+        //push to local storage
+
         // if (chain) {
         //   console.log('Found Chain in EIP155_CHAINS: ', chain);
         //   CURRENT_PROVIDER.chainId = chain.chainId;

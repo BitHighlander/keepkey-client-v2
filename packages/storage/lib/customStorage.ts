@@ -21,6 +21,15 @@ type EventStorage = BaseStorage<Event[]> & {
   clearEvents: () => Promise<void>;
 };
 
+type AssetContext = {
+  [key: string]: any;
+};
+
+type AssetContextStorage = BaseStorage<AssetContext> & {
+  updateContext: (key: string, value: any) => Promise<void>;
+  clearContext: () => Promise<void>;
+};
+
 const TAG = ' | customStorage | ';
 
 // Create API Key Storage
@@ -102,6 +111,31 @@ export const requestStorage = createEventStorage('keepkey-requests');
 export const approvalStorage = createEventStorage('keepkey-approvals');
 export const completedStorage = createEventStorage('keepkey-completed');
 
+// Create Asset Context Storage
+const createAssetContextStorage = (): AssetContextStorage => {
+  const storage = createStorage<AssetContext>(
+    'keepkey-asset-context',
+    {},
+    {
+      storageType: StorageType.Local,
+      liveUpdate: true,
+    },
+  );
+
+  return {
+    ...storage,
+    updateContext: async (key: string, value: any) => {
+      await storage.set(prev => ({ ...prev, [key]: value }));
+    },
+    clearContext: async () => {
+      await storage.set(() => ({}));
+    },
+  };
+};
+
+export const assetContextStorage = createAssetContextStorage();
+
+// Utility function to move an event between storages
 const moveEvent = async (
   eventId: string,
   fromStorage: EventStorage,

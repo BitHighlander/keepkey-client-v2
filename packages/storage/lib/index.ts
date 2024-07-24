@@ -1,5 +1,11 @@
 import { createStorage, StorageType, type BaseStorage, SessionAccessLevel } from './base';
-import { keepKeyApiKeyStorage, requestStorage, approvalStorage, completedStorage } from './customStorage';
+import {
+  keepKeyApiKeyStorage,
+  requestStorage,
+  approvalStorage,
+  completedStorage,
+  assetContextStorage,
+} from './customStorage';
 
 export {
   keepKeyApiKeyStorage,
@@ -9,5 +15,6 @@ export {
   createStorage,
   StorageType,
   SessionAccessLevel,
+  assetContextStorage,
 };
 export type { BaseStorage };

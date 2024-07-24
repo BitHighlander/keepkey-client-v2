@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Button, Flex, Heading, Text, Image } from '@chakra-ui/react';
-import { requestStorage, approvalStorage, completedStorage } from '@chrome-extension-boilerplate/storage';
+import { Box, Button, Flex } from '@chakra-ui/react';
+import {
+  requestStorage,
+  approvalStorage,
+  completedStorage,
+  assetContextStorage,
+} from '@chrome-extension-boilerplate/storage';
 import Transaction from './Transaction';
 import { Classic } from '@coinmasters/pioneer-lib';
 
-//@ts-ignore
-const EventsViewer = ({ usePioneer }: any) => {
+const EventsViewer = ({ usePioneer, app }: any) => {
   const [events, setEvents] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentProvider, setCurrentProvider] = useState<any>(null);
@@ -15,21 +19,55 @@ const EventsViewer = ({ usePioneer }: any) => {
     setEvents(storedEvents || []);
   };
 
-  useEffect(() => {
-    fetchEvents();
-  }, []);
-
   const fetchProvider = () => {
-    chrome.runtime.sendMessage({ type: 'GET_PROVIDER' }, response => {
+    chrome.runtime.sendMessage({ type: 'GET_PROVIDER' }, async response => {
       if (response && response.provider) {
-        setCurrentProvider(response.provider);
+        console.log('response: ', response);
+        console.log('response: ', response.caip);
+        const storedContext = await assetContextStorage.get();
+        console.log('**** storedContext: ', storedContext);
+        if (!storedContext || storedContext.provider !== response.provider) {
+          await assetContextStorage.updateContext('provider', response.provider);
+          if (app) app.setAssetContext(response);
+          setCurrentProvider(response.provider);
+        }
       }
     });
   };
 
+  const fetchAssetContext = async () => {
+    console.log('************ TESTING ************');
+    try {
+      const context = await assetContextStorage.get();
+      console.log('**** storedContext: ', context.provider);
+      console.log('**** storedContext: ', context.provider.caip);
+      if (app) {
+        app.setAssetContext(context.provider);
+      } else {
+        console.error('Unable to set asset context. App is not defined.');
+      }
+      setCurrentProvider(context?.provider);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
-    fetchProvider();
+    fetchAssetContext();
   }, []);
+
+  useEffect(() => {
+    if (app) {
+      fetchProvider();
+      fetchAssetContext();
+    }
+  }, [app]);
+
+  useEffect(() => {
+    if (app && currentProvider === null) {
+      fetchProvider();
+    }
+  }, [app, currentProvider]);
 
   const nextEvent = () => {
     if (currentIndex < events.length - 1) {
@@ -59,30 +97,11 @@ const EventsViewer = ({ usePioneer }: any) => {
 
   return (
     <Box>
-      {/*<Heading as="h2" size="lg" mb={4}>*/}
-      {/*  {currentProvider ? (*/}
-      {/*    <>*/}
-      {/*      <Image src={currentProvider.logo} alt={currentProvider.name} boxSize="20px" mr={2} />*/}
-      {/*      Current chain: {currentProvider.name}*/}
-      {/*    </>*/}
-      {/*  ) : (*/}
-      {/*    'Loading provider...'*/}
-      {/*  )}*/}
-      {/*  <Text>Total Events: {events.length}</Text>*/}
-      {/*</Heading>*/}
       {events.length > 0 ? (
         <Transaction event={events[currentIndex]} reloadEvents={fetchEvents} />
       ) : (
         <Classic usePioneer={usePioneer}></Classic>
       )}
-      {/*<Flex mt={4}>*/}
-      {/*  <Button onClick={previousEvent} mr={2} isDisabled={currentIndex === 0}>*/}
-      {/*    Previous*/}
-      {/*  </Button>*/}
-      {/*  <Button onClick={nextEvent} isDisabled={currentIndex === events.length - 1}>*/}
-      {/*    Next*/}
-      {/*  </Button>*/}
-      {/*</Flex>*/}
       <Flex>
         {/*<Button colorScheme="red" onClick={clearRequestEvents}>*/}
         {/*  Clear Request Events*/}

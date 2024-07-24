@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Avatar, Box, Button, Stack, Link, Card, Text, Spinner } from '@chakra-ui/react';
 import '@src/Popup.css';
-import { requestStorage, approvalStorage } from '@chrome-extension-boilerplate/storage';
+import { requestStorage, approvalStorage, assetContextStorage } from '@chrome-extension-boilerplate/storage';
 import { withErrorBoundary, withSuspense } from '@chrome-extension-boilerplate/shared';
 import EventsViewer from './components/Events'; // Adjust the import path accordingly
 import { useOnStartApp } from './onStart';
@@ -121,13 +121,20 @@ const Popup = () => {
 
     switch (keepkeyState) {
       case 0: // disconnected
-        return <Text>KeepKey is disconnected.</Text>;
+        return (
+          <div>
+            <Spinner size="xl" />
+            <Text mt={4}>Connecting to KeepKey...</Text>
+          </div>
+        );
       case 1: // disconnected
-        return <Text>KeepKey is disconnected.</Text>;
+        return (
+          <div>
+            <Spinner size="xl" />
+            <Text mt={4}>Connecting to KeepKey...</Text>
+          </div>
+        );
       case 2: // connected
-        if (events.length === 0) {
-          return <Text>Connected and no events.</Text>;
-        }
         return <EventsViewer usePioneer={usePioneer} />;
       case 3: // busy
         return (
