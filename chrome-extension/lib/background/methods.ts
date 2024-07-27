@@ -330,6 +330,7 @@ export const handleEthereumRequest = async (
       case 'eth_signTypedData_v3':
       case 'eth_signTransaction':
       case 'eth_sendTransaction':
+      case 'personal_sign':
       case 'eth_sign': {
         await requireApproval(requestInfo, method, params[0]);
         console.log(tag, 'Returning approval response for method:', method);

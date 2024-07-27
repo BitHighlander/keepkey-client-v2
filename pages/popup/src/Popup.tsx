@@ -49,7 +49,7 @@ const Popup = () => {
       }
     } catch (error) {
       console.error('Failed to launch KeepKey:', error);
-      alert('Failed to launch KeepKey: ' + error.toString());
+      // alert('Failed to launch KeepKey: ' + error.toString());
     }
   };
 
@@ -85,12 +85,13 @@ const Popup = () => {
     };
     loadEventsFromStorage();
 
-    const listener = (message: { action: string; request: any; state?: number }) => {
+    const listener = (message: any) => {
       console.log('Received message:', message);
       if (message.action && message.request) {
         const newEvent = { action: message.action, request: message.request };
         setEvents(prevEvents => {
           const updatedEvents = [...prevEvents, newEvent];
+          //@ts-ignore
           requestStorage.addEvent(newEvent); // Update the events in storage
           return updatedEvents;
         });
@@ -158,7 +159,7 @@ const Popup = () => {
             alignItems="center"
             textAlign="center"
             boxShadow="lg">
-            <Avatar size="2xl" src="https://pioneers.dev/coins/keepkey.png" alt="Error" mb={6} />
+            <Avatar size="2xl" src="https://pioneers.dev/coins/keepkey.png" mb={6} />
             <Text fontSize="lg" mb={4}>
               KeepKey encountered an error.
             </Text>
