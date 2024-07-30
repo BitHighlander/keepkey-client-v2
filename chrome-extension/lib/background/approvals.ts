@@ -33,6 +33,7 @@ const processApprovedEvent = async (event: Event, KEEPKEY_SDK: any, ADDRESS: str
     const provider = new JsonRpcProvider(EIP155_CHAINS['eip155:1'].rpc);
 
     switch (event.type) {
+      case 'personal_sign':
       case 'eth_sign':
         await signMessage(event.request, KEEPKEY_SDK);
         break;

@@ -1,6 +1,6 @@
 (function () {
   const TAG = ' | InjectedScript | ';
-  const VERSION = '1.0.2';
+  const VERSION = '1.0.3';
   console.log('**** KeepKey Injection script ****: ', VERSION);
   const SITE_URL = window.location.href; // Add the site URL
   const SOURCE_INFO = {
@@ -120,7 +120,7 @@
     const proxyEthereum = new Proxy(ethereum, handler);
 
     const info = {
-      uuid: '350670db-19fa-4704-a166-e52e178b59d3',
+      uuid: '350670db-19fa-4704-a166-e52e178b59d4',
       name: 'KeepKey Client',
       icon: 'https://pioneers.dev/coins/keepkey.png',
       rdns: 'com.keepkey',
