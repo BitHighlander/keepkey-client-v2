@@ -1,6 +1,4 @@
 import 'webextension-polyfill';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
 import packageJson from '../../package.json'; // Adjust the path as needed
 import { onStartKeepkey } from './keepkey';
 import { handleEthereumRequest } from './methods';
@@ -123,10 +121,9 @@ const onStart = async function () {
 
     // Set addresses
     ADDRESS = address;
-    // console.log(tag, '**** keepkey: ', keepkey);
+    console.log(tag, '**** keepkey: ', keepkey);
     KEEPKEY_SDK = keepkey.ETH.keepkeySdk;
     // console.log(tag, 'keepkeySdk: ', KEEPKEY_SDK);
-
     // Start listening for approval events
     listenForApproval(KEEPKEY_SDK, ADDRESS);
   } catch (e) {
@@ -137,13 +134,16 @@ const onStart = async function () {
 };
 onStart();
 
+//Poll for keepkey status
+// let checkStatus =
+
 // Listen for messages from the content script
 chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: any) => {
   const tag = TAG + ' | chrome.runtime.onMessage | ';
   // console.log(tag, 'message:', message);
 
   if (message.type === 'ETH_REQUEST') {
-    console.log(tag, 'Background script received ETH_REQUEST:', message);
+    // console.log(tag, 'Background script received ETH_REQUEST:', message);
     const { method, params, requestInfo } = message;
     // console.log(tag, 'requestInfo:', requestInfo);
     // console.log(tag, 'method:', method);
@@ -168,6 +168,14 @@ chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: a
 
   if (message.type === 'GET_KEEPKEY_STATE') {
     sendResponse({ state: KEEPKEY_STATE });
+    return true;
+  }
+
+  if (message.type === 'ON_START') {
+    onStart();
+    setTimeout(() => {
+      sendResponse({ state: KEEPKEY_STATE });
+    }, 15000); // 15000 milliseconds = 15 seconds
     return true;
   }
 

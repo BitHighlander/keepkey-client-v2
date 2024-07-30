@@ -17,6 +17,20 @@ const CURRENT_PROVIDER: any = {
   fallbacks: [],
 };
 
+interface ChainInfo {
+  chainId: string;
+  name: string;
+  logo: string;
+  rgb: string;
+  rpc: string;
+  namespace: string;
+  caip: string;
+}
+
+interface Eip155Chains {
+  [key: string]: ChainInfo;
+}
+
 type Event = {
   id: string;
   type: string;
@@ -84,7 +98,7 @@ const openPopup = function () {
   }
 };
 
-const requireApproval = async function (requestInfo: any, method: string, params: any, KEEPKEY_SDK: any) {
+const requireApproval = async function (requestInfo: any, method: string, params: any) {
   const tag = TAG + ' | requireApproval | ';
   try {
     isPopupOpen = true;
@@ -109,7 +123,7 @@ const requireApproval = async function (requestInfo: any, method: string, params
   }
 };
 
-const requireUnlock = function () {
+const requireUnlock = async function () {
   const tag = TAG + ' | requireUnlock | ';
   try {
     console.log(tag, 'requireUnlock for domain');
@@ -315,7 +329,7 @@ export const handleEthereumRequest = async (
       case 'eth_sendTransaction':
       case 'personal_sign':
       case 'eth_sign': {
-        await requireApproval(requestInfo, method, params[0], KEEPKEY_SDK);
+        await requireApproval(requestInfo, method, params[0]);
         console.log(tag, 'Returning approval response for method:', method);
         return true;
       }
@@ -331,7 +345,7 @@ export const handleEthereumRequest = async (
   } catch (error) {
     console.error(tag, `Error processing method ${method}:`, error);
 
-    if (error.code && error.message) {
+    if ((error as ProviderRpcError).code && (error as ProviderRpcError).message) {
       throw error;
     } else {
       throw createProviderRpcError(4000, `Unexpected error processing method ${method}`, error);

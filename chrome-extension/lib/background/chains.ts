@@ -1,4 +1,4 @@
-export const EIP155_CHAINS = {
+export const EIP155_CHAINS: any = {
   'eip155:1': {
     chainId: '0x1',
     name: 'Ethereum',
