@@ -18,6 +18,7 @@ const EventsViewer = ({ usePioneer }: any) => {
 
   const fetchEvents = async () => {
     const storedEvents = await requestStorage.getEvents();
+    console.log('storedEvents: ', storedEvents);
     setEvents(storedEvents || []);
   };
 
@@ -58,11 +59,13 @@ const EventsViewer = ({ usePioneer }: any) => {
   };
 
   useEffect(() => {
+    fetchEvents();
     fetchAssetContext();
   }, []);
 
   useEffect(() => {
     if (app) {
+      fetchEvents();
       fetchProvider();
       fetchAssetContext();
     }

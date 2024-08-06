@@ -1,3 +1,4 @@
+// @ts-ignore
 console.log('content script loaded');
 
 window.addEventListener('message', event => {

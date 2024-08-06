@@ -70,6 +70,7 @@
     const tag = TAG + ' | window.ethereum | ';
     const ethereum = {
       isMetaMask: true,
+      // isUniswapWallet: true,
       isKeepKey: true,
       request: async ({ method, params }) => {
         // console.log(tag, 'ethereum.request called with:', method, params);
@@ -104,6 +105,7 @@
       },
       chainId: '0x1', // Ensure chainId is correctly set
       networkVersion: '1', // Ensure networkVersion is correctly set
+      isConnected: true,
     };
 
     const handler = {
@@ -152,4 +154,5 @@
   } else {
     document.addEventListener('DOMContentLoaded', mountEthereum);
   }
+  mountEthereum();
 })();
