@@ -1,11 +1,15 @@
+// Popup.tsx
 import React, { useState, useEffect } from 'react';
-import { Avatar, Box, Button, Stack, Link, Card, Text, Spinner } from '@chakra-ui/react';
+import { Box, Text, Spinner } from '@chakra-ui/react';
 import '@src/Popup.css';
-import { requestStorage, approvalStorage, assetContextStorage } from '@chrome-extension-boilerplate/storage';
+import { requestStorage, approvalStorage } from '@chrome-extension-boilerplate/storage';
 import { withErrorBoundary, withSuspense } from '@chrome-extension-boilerplate/shared';
 import EventsViewer from './components/Events'; // Adjust the import path accordingly
 import { useOnStartApp } from './onStart';
 import { usePioneer } from '@coinmasters/pioneer-react';
+import Connect from './components/Connect'; // Import the new Connect component
+import Loading from './components/Loading'; // Import the new Connect component
+import axios from 'axios';
 
 const Popup = () => {
   const onStartApp = useOnStartApp();
@@ -16,42 +20,28 @@ const Popup = () => {
   const [currentProvider, setCurrentProvider] = useState<any>(null);
 
   useEffect(() => {
+    const checkKeepKey = async () => {
+      try {
+        const response = await axios.get('http://localhost:1646/docs');
+        if (response.status === 200) {
+          setKeepkeyState(2); // Set state to 1 if KeepKey is connected
+        }
+      } catch (error) {
+        console.error('KeepKey endpoint not found:', error);
+        setKeepkeyState(4); // Set state to 4 if there's an error
+      }
+    };
+
+    checkKeepKey();
+    const interval = setInterval(checkKeepKey, 5000); // Check every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
     console.log('Starting app...');
     onStartApp();
   }, []);
-
-  const connectKeepkey = () => {
-    console.log('connectKeepkey called');
-    setIsConnecting(true);
-    try {
-      chrome.runtime.sendMessage({ type: 'ON_START' }, response => {
-        if (chrome.runtime.lastError) {
-          console.error('chrome.runtime.lastError:', chrome.runtime.lastError.message);
-        } else {
-          console.log('Response:', response);
-        }
-        setIsConnecting(false);
-      });
-    } catch (error) {
-      console.error('Error in connectKeepkey:', error);
-      setIsConnecting(false);
-    }
-  };
-
-  const launchKeepKey = () => {
-    try {
-      console.log('window: ', window);
-      console.log('window.location: ', window.location);
-      if (window) {
-        setTimeout(() => {
-          window.location.assign('keepkey://launch');
-        }, 100); // Adding a slight delay before launching the URL
-      }
-    } catch (error) {
-      console.error('Failed to launch KeepKey:', error);
-      // alert('Failed to launch KeepKey: ' + error.toString());
-    }
-  };
 
   useEffect(() => {
     console.log('Fetching KeepKey state...');
@@ -116,69 +106,19 @@ const Popup = () => {
 
   const renderContent = () => {
     if (isConnecting) {
-      return (
-        <Box textAlign="center">
-          <Spinner size="xl" />
-          <Text mt={4}>Connecting to KeepKey...</Text>
-        </Box>
-      );
+      return <Loading setIsConnecting={setIsConnecting} keepkeyState={keepkeyState} />;
     }
 
     switch (keepkeyState) {
       case 0: // disconnected
-        return (
-          <div>
-            <Spinner size="xl" />
-            <Text mt={4}>Connecting to KeepKey...</Text>
-          </div>
-        );
-      case 1: // disconnected
-        return (
-          <div>
-            <Spinner size="xl" />
-            <Text mt={4}>Connecting to KeepKey...</Text>
-          </div>
-        );
+      case 1: // connecting
+        return <Loading setIsConnecting={setIsConnecting} keepkeyState={keepkeyState} />;
       case 2: // connected
         return <EventsViewer usePioneer={usePioneer} app={{ currentProvider }} />;
       case 3: // busy
-        return (
-          <Card borderRadius="md" p={4} mb={4}>
-            <Spinner size="xl" />
-            <Text>KeepKey is busy...</Text>
-          </Card>
-        );
+        return <Loading setIsConnecting={setIsConnecting} keepkeyState={keepkeyState} />;
       case 4: // errored
-        return (
-          <Card
-            borderRadius="md"
-            p={6}
-            mb={6}
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            textAlign="center"
-            boxShadow="lg">
-            <Avatar size="2xl" src="https://pioneers.dev/coins/keepkey.png" mb={6} />
-            <Text fontSize="lg" mb={4}>
-              KeepKey encountered an error.
-            </Text>
-            <Stack direction="column" spacing={4} mb={4}>
-              <Button colorScheme="teal" onClick={connectKeepkey}>
-                Connect your KeepKey
-              </Button>
-              <Button colorScheme="blue" onClick={launchKeepKey}>
-                Launch KeepKey Desktop
-              </Button>
-            </Stack>
-            <Text fontSize="sm" mt={4}>
-              Don't have a KeepKey?{' '}
-              <Link color="teal.500" href="https://keepkey.com">
-                Buy a KeepKey
-              </Link>
-            </Text>
-          </Card>
-        );
+        return <Connect setIsConnecting={setIsConnecting} />;
       default:
         return <Text>Device not connected.</Text>;
     }
