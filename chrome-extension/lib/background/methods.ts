@@ -98,9 +98,10 @@ const openPopup = function () {
   }
 };
 
-const requireApproval = async function (requestInfo: any, method: string, params: any) {
+const requireApproval = async function (requestInfo: any, chain: any, method: string, params: any) {
   const tag = TAG + ' | requireApproval | ';
   try {
+    //requireApproval
     isPopupOpen = true;
     const event: Event = {
       id: uuidv4(), // ID will be generated in storage
@@ -142,16 +143,18 @@ const sanitizeChainId = (chainId: string): string => {
   return chainId.replace(/^0x0x/, '0x');
 };
 
-export const handleEthereumRequest = async (
+export const handleWalletRequest = async (
   requestInfo: any,
+  chain: string,
   method: string,
   params: any[],
   provider: JsonRpcProvider,
   KEEPKEY_SDK: any,
   ADDRESS: string,
 ): Promise<any> => {
-  const tag = ' | handleEthereumRequest | ';
+  const tag = ' | handleWalletRequest | ';
   try {
+    console.log(tag, 'chain:', chain);
     console.log(tag, 'requestInfo:', requestInfo);
     if (!requestInfo) throw Error('Cannot validate request! Refusing to proceed.');
 
@@ -227,6 +230,7 @@ export const handleEthereumRequest = async (
         console.log(tag, 'Calling wallet_switchEthereumChain chainId:', chainId);
         if (params && params[0] && params[0].rpcUrls && params[0].rpcUrls[0]) {
           console.log(tag, 'Given Params for custom chain addition!');
+
           /*
               Example from thechainlist.org:
               {
@@ -243,6 +247,7 @@ export const handleEthereumRequest = async (
                 ]
               }
           */
+
           //blockExplorerUrls
           CURRENT_PROVIDER.blockExplorerUrls = params[0].blockExplorerUrls;
           CURRENT_PROVIDER.chainId = sanitizeChainId(params[0].chainId);
@@ -329,7 +334,7 @@ export const handleEthereumRequest = async (
       case 'eth_sendTransaction':
       case 'personal_sign':
       case 'eth_sign': {
-        await requireApproval(requestInfo, method, params[0]);
+        await requireApproval(requestInfo, chain, method, params[0]);
         console.log(tag, 'Returning approval response for method:', method);
         return true;
       }

@@ -2,39 +2,40 @@
   const TAG = ' | InjectedScript | ';
   const VERSION = '1.0.3';
   console.log('**** KeepKey Injection script ****: ', VERSION);
-  const SITE_URL = window.location.href; // Add the site URL
+  const SITE_URL = window.location.href;
   const SOURCE_INFO = {
     siteUrl: SITE_URL,
-    scriptSource: 'KeepKey Extension', // Provide a description or name of the source
+    scriptSource: 'KeepKey Extension',
     version: VERSION,
-    injectedTime: new Date().toISOString(), // Record the time when the script is injected
+    injectedTime: new Date().toISOString(),
   };
   console.log('SOURCE_INFO: ', SOURCE_INFO);
 
-  async function ethereumRequest(method, params = []) {
-    let tag = TAG + ' | ethereumRequest | ';
+  async function walletRequest(method, params = [], chain = '') {
+    let tag = TAG + ' | walletRequest | ';
     try {
       const requestInfo = {
         method,
         params,
+        chain,
         siteUrl: SOURCE_INFO.siteUrl,
         scriptSource: SOURCE_INFO.scriptSource,
         version: SOURCE_INFO.version,
         requestTime: new Date().toISOString(),
-        referrer: document.referrer, // Include document.referrer
-        href: window.location.href, // Include the current page URL
-        userAgent: navigator.userAgent, // Include the user agent
-        platform: navigator.platform, // Include the platform
-        language: navigator.language, // Include the language
+        referrer: document.referrer,
+        href: window.location.href,
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
       };
       console.log(tag, 'method:', method);
       console.log(tag, 'params:', params);
+      console.log(tag, 'chain:', chain);
+      // console.log(tag, 'window object:', window);
 
       return await new Promise((resolve, reject) => {
-        // Send the request to the content script
-        window.postMessage({ type: 'ETH_REQUEST', method, params, requestInfo, tag: TAG }, '*');
+        window.postMessage({ type: 'WALLET_REQUEST', method, params, chain, requestInfo, tag: TAG }, '*');
 
-        // Listen for the response from the content script
         function handleMessage(event) {
           if (event.data.result) resolve(event.data.result);
         }
@@ -49,8 +50,10 @@
 
   function sendRequestAsync(payload, callback) {
     const tag = TAG + ' | sendRequestAsync | ';
-    console.log(tag, 'ethereum.sendAsync called with:', payload);
-    ethereumRequest(payload.method, payload.params).then(
+    console.log(tag, 'wallet.sendAsync called with chain:', payload.chain);
+    console.log(tag, 'wallet.sendAsync called with method:', payload.method);
+    console.log(tag, 'wallet.sendAsync called with params:', payload.params);
+    walletRequest(payload.method, payload.params, payload.chain).then(
       result => callback(null, { id: payload.id, jsonrpc: '2.0', result }),
       error => callback(error),
     );
@@ -58,52 +61,60 @@
 
   function sendRequestSync(payload) {
     const tag = TAG + ' | sendRequestSync | ';
-    console.log(tag, 'ethereum.sendSync called with:', payload);
+    console.log(tag, 'wallet.sendSync called with:', payload);
     return {
       id: payload.id,
       jsonrpc: '2.0',
-      result: ethereumRequest(payload.method, payload.params),
+      result: walletRequest(payload.method, payload.params, payload.chain),
     };
   }
 
-  function mountEthereum() {
-    const tag = TAG + ' | window.ethereum | ';
-    const ethereum = {
+  function mountWallet() {
+    const tag = TAG + ' | window.wallet | ';
+    const wallet = {
       isMetaMask: true,
       isKeepKey: true,
-      request: async ({ method, params }) => {
-        // console.log(tag, 'ethereum.request called with:', method, params);
-        return ethereumRequest(method, params);
-      },
-      send: (payload, callback) => {
-        if (callback) {
-          sendRequestAsync(payload, callback);
-        } else {
-          return sendRequestSync(payload);
-        }
-      },
-      sendAsync: (payload, callback) => {
-        sendRequestAsync(payload, callback);
-      },
-      on: (event, handler) => {
-        console.log(tag, `event registered: ${event}`);
-        window.addEventListener(event, handler);
-      },
-      removeListener: (event, handler) => {
-        console.log(tag, `event unregistered: ${event}`);
-        window.removeEventListener(event, handler);
-      },
+      request: async ({ method, params, chain }) => walletRequest(method, params, chain),
+      send: (payload, callback) => (callback ? sendRequestAsync(payload, callback) : sendRequestSync(payload)),
+      sendAsync: (payload, callback) => sendRequestAsync(payload, callback),
+      on: (event, handler) => window.addEventListener(event, handler),
+      removeListener: (event, handler) => window.removeEventListener(event, handler),
       removeAllListeners: () => {
-        console.log(tag, `removeAllListeners called`);
-        // You need to keep track of the events and handlers to remove them all
-        // This is a simple example, you'll need to adapt it to your specific use case
-        const events = ['message', 'click', 'keydown']; // Add the events you want to track
-        events.forEach(event => {
-          window.removeEventListener(event, () => {});
-        });
+        ['message', 'click', 'keydown'].forEach(event => window.removeEventListener(event, () => {}));
       },
-      chainId: '0x1', // Ensure chainId is correctly set
-      networkVersion: '1', // Ensure networkVersion is correctly set
+      chainId: '0x1',
+      networkVersion: '1',
+    };
+
+    const xfi = {
+      binance: {
+        request: async ({ method, params }) => walletRequest(method, params, 'binance'),
+      },
+      bitcoin: {
+        request: async ({ method, params }) => walletRequest(method, params, 'bitcoin'),
+      },
+      bitcoincash: {
+        request: async ({ method, params }) => walletRequest(method, params, 'bitcoincash'),
+      },
+      dogecoin: {
+        request: async ({ method, params }) => walletRequest(method, params, 'dogecoin'),
+      },
+      ethereum: wallet, // Using the same wallet object for Ethereum
+      keplr: {
+        request: async ({ method, params }) => walletRequest(method, params, 'keplr'),
+      },
+      litecoin: {
+        request: async ({ method, params }) => walletRequest(method, params, 'litecoin'),
+      },
+      thorchain: {
+        request: async ({ method, params }) => walletRequest(method, params, 'thorchain'),
+      },
+      mayachain: {
+        request: async ({ method, params }) => walletRequest(method, params, 'mayachain'),
+      },
+      solana: {
+        request: async ({ method, params }) => walletRequest(method, params, 'solana'),
+      },
     };
 
     const handler = {
@@ -117,7 +128,8 @@
       },
     };
 
-    const proxyEthereum = new Proxy(ethereum, handler);
+    const proxyWallet = new Proxy(wallet, handler);
+    const proxyXfi = new Proxy(xfi, handler);
 
     const info = {
       uuid: '350670db-19fa-4704-a166-e52e178b59d4',
@@ -126,30 +138,38 @@
       rdns: 'com.keepkey',
     };
 
-    const announceEvent = new CustomEvent('eip6963:announceProvider', {
-      detail: Object.freeze({ info, provider: proxyEthereum }),
-    });
+    // const announceEvent = new CustomEvent('eip6963:announceProvider', {
+    //   detail: Object.freeze({ info, provider: proxyWallet }),
+    // });
+    //
+    // function announceProvider() {
+    //   window.dispatchEvent(announceEvent);
+    // }
 
-    function announceProvider() {
-      window.dispatchEvent(announceEvent);
-    }
+    // window.addEventListener('eip6963:requestProvider', () => {
+    //   announceProvider();
+    // });
+    // announceProvider();
+    //TODO debug sending event with empty info
 
-    window.addEventListener('eip6963:requestProvider', () => {
-      announceProvider();
-    });
-    announceProvider();
-
-    Object.defineProperty(window, 'ethereum', {
-      value: proxyEthereum,
+    Object.defineProperty(window, 'wallet', {
+      value: proxyWallet,
       writable: false,
       configurable: true,
     });
-    console.log(tag, 'window.ethereum has been mounted');
+
+    Object.defineProperty(window, 'xfi', {
+      value: proxyXfi,
+      writable: false,
+      configurable: true,
+    });
+
+    console.log(tag, 'window.wallet and window.xfi have been mounted');
   }
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    mountEthereum();
+    mountWallet();
   } else {
-    document.addEventListener('DOMContentLoaded', mountEthereum);
+    document.addEventListener('DOMContentLoaded', mountWallet);
   }
 })();

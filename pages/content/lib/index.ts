@@ -1,14 +1,15 @@
+const TAG = ' | content | ';
 console.log('content script loaded');
 
 window.addEventListener('message', event => {
-  if (event.source !== window || !event.data || event.data.type !== 'ETH_REQUEST') return;
-
-  const { method, params, requestInfo } = event.data;
-
+  let tag = TAG + ' | window.addEventListener | ';
+  console.log(tag, 'event: ', event.data.type);
+  if (event.source !== window || !event.data || event.data.type !== 'WALLET_REQUEST') return;
+  const { method, params, chain, requestInfo } = event.data;
   // Forward the request to the background script
-  chrome.runtime.sendMessage({ type: 'ETH_REQUEST', method, params, requestInfo }, response => {
+  chrome.runtime.sendMessage({ type: 'WALLET_REQUEST', method, params, chain, requestInfo }, response => {
     // Send the response back to the web page
-    window.postMessage({ type: 'ETH_RESPONSE', method, result: response }, '*');
+    window.postMessage({ type: 'WALLET_RESPONSE', method, result: response }, '*');
   });
 });
 
