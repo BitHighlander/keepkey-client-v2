@@ -11,8 +11,51 @@
   };
   console.log('SOURCE_INFO: ', SOURCE_INFO);
 
-  async function walletRequest(method, params = [], chain = '') {
-    let tag = TAG + ' | walletRequest | ';
+  // async function walletRequest(method, params = [], chain = '') {
+  //   let tag = TAG + ' | walletRequest | ';
+  //   try {
+  //     const requestInfo = {
+  //       method,
+  //       params,
+  //       chain,
+  //       siteUrl: SOURCE_INFO.siteUrl,
+  //       scriptSource: SOURCE_INFO.scriptSource,
+  //       version: SOURCE_INFO.version,
+  //       requestTime: new Date().toISOString(),
+  //       referrer: document.referrer,
+  //       href: window.location.href,
+  //       userAgent: navigator.userAgent,
+  //       platform: navigator.platform,
+  //       language: navigator.language,
+  //     };
+  //     console.log(tag, 'method:', method);
+  //     console.log(tag, 'params:', params);
+  //     console.log(tag, 'chain:', chain);
+  //
+  //     return await new Promise((resolve, reject) => {
+  //       window.postMessage({ type: 'WALLET_REQUEST', method, params, chain, requestInfo, tag: TAG }, '*');
+  //
+  //       function handleMessage(event) {
+  //         if (event.data.result && event.data.method === method) {
+  //           console.log(tag, 'Resolving response:', event.data.result);
+  //           // resolve(event.data.result);
+  //           return event.data.result
+  //           window.removeEventListener('message', handleMessage);
+  //         } else {
+  //           console.log(tag, 'Ignoring message:', event.data);
+  //         }
+  //       }
+  //
+  //       window.addEventListener('message', handleMessage);
+  //     });
+  //   } catch (error) {
+  //     console.error(tag, `Error in ${TAG}:`, error);
+  //     throw error;
+  //   }
+  // }
+
+  function walletRequest(method, params = [], chain = '', callback) {
+    const tag = TAG + ' | walletRequest | ';
     try {
       const requestInfo = {
         method,
@@ -32,35 +75,45 @@
       console.log(tag, 'params:', params);
       console.log(tag, 'chain:', chain);
 
-      return await new Promise((resolve, reject) => {
-        window.postMessage({ type: 'WALLET_REQUEST', method, params, chain, requestInfo, tag: TAG }, '*');
+      window.postMessage({ type: 'WALLET_REQUEST', method, params, chain, requestInfo, tag: TAG }, '*');
 
-        function handleMessage(event) {
-          if (event.data.result) resolve(event.data.result);
+      function handleMessage(event) {
+        if (event.data.result && event.data.method === method) {
+          console.log(tag, 'Resolving response:', event.data.result);
+          callback(null, event.data.result); // Use callback to return the result
+          window.removeEventListener('message', handleMessage);
+        } else {
+          console.log(tag, 'Ignoring message:', event.data);
         }
+      }
 
-        window.addEventListener('message', handleMessage);
-      });
+      window.addEventListener('message', handleMessage);
     } catch (error) {
       console.error(tag, `Error in ${TAG}:`, error);
-      throw error;
+      callback(error); // Use callback to return the error
     }
   }
 
-  function sendRequestAsync(payload, callback) {
+  function sendRequestAsync(payload, param1, callback) {
     const tag = TAG + ' | sendRequestAsync | ';
-    console.log(tag, 'wallet.sendAsync called with chain:', payload.chain);
-    console.log(tag, 'wallet.sendAsync called with method:', payload.method);
-    console.log(tag, 'wallet.sendAsync called with params:', payload.params);
-    walletRequest(payload.method, payload.params, payload.chain).then(
-      result => callback(null, { id: payload.id, jsonrpc: '2.0', result }),
-      error => callback(error),
-    );
+    console.log(tag, 'payload:', payload);
+    console.log(tag, 'param1:', param1);
+    console.log(tag, 'callback:', callback);
+
+    if (typeof callback === 'function') {
+      walletRequest(payload.method, payload.params, payload.chain).then(
+        result => callback(null, { id: payload.id, jsonrpc: '2.0', result }),
+        error => callback(error),
+      );
+    } else {
+      console.error(tag, 'Callback is not a function:', callback);
+    }
   }
 
-  function sendRequestSync(payload) {
+  function sendRequestSync(payload, param1) {
     const tag = TAG + ' | sendRequestSync | ';
     console.log(tag, 'wallet.sendSync called with:', payload);
+    console.log(tag, 'wallet.sendSync called with param1:', param1);
     return {
       id: payload.id,
       jsonrpc: '2.0',
@@ -69,20 +122,53 @@
   }
 
   function createWalletObject(chain) {
-    return {
-      isMetaMask: chain === 'ethereum',
+    console.log('payload:', chain);
+    let wallet = {
+      network: 'mainnet',
       isKeepKey: true,
-      request: async ({ method, params }) => walletRequest(method, params, chain),
-      send: (payload, callback) => (callback ? sendRequestAsync(payload, callback) : sendRequestSync(payload)),
-      sendAsync: (payload, callback) => sendRequestAsync(payload, callback),
+      // request: ({ method, params }, callback) => {
+      //   walletRequest(method, params, chain)
+      //       .then(result => {
+      //         if (callback) {
+      //           callback(result); // Call the callback with the result
+      //         }
+      //       })
+      //       .catch(error => {
+      //         if (callback) {
+      //           callback(error); // Call the callback with the error
+      //         }
+      //       });
+      // },
+      // request: async ({ method, params }) => walletRequest(method, params, chain),
+      request: ({ method, params }, callback) => {
+        walletRequest(method, params, chain, (error, result) => {
+          if (error) {
+            callback(error);
+          } else {
+            console.log('createWalletObject: result: ', result);
+            callback(null, result);
+          }
+        });
+      },
+      send: (payload, param1, callback) =>
+        callback ? sendRequestAsync(payload, param1, callback) : sendRequestSync(payload),
+      sendAsync: (payload, param1, callback) => sendRequestAsync(payload, param1, callback),
       on: (event, handler) => window.addEventListener(event, handler),
       removeListener: (event, handler) => window.removeEventListener(event, handler),
       removeAllListeners: () => {
         ['message', 'click', 'keydown'].forEach(event => window.removeEventListener(event, () => {}));
       },
-      chainId: '0x1',
-      networkVersion: '1',
     };
+    if (chain == 'ethereum') {
+      wallet.chainId = '0x1';
+      wallet.networkVersion = '1';
+      wallet.isMetaMask = true;
+    }
+    if (chain == 'thorchain') {
+      wallet.chainId = 'Thorchain_thorchain';
+    }
+
+    return wallet;
   }
 
   function mountWallet() {
