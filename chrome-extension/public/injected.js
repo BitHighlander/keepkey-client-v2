@@ -80,7 +80,9 @@
       function handleMessage(event) {
         if (event.data.result && event.data.method === method) {
           console.log(tag, 'Resolving response:', event.data.result);
-          callback(null, event.data.result); // Use callback to return the result
+          if (callback && typeof callback === 'function') {
+            callback(null, event.data.result); // Use callback to return the result
+          }
           window.removeEventListener('message', handleMessage);
         } else {
           console.log(tag, 'Ignoring message:', event.data);
@@ -126,29 +128,30 @@
     let wallet = {
       network: 'mainnet',
       isKeepKey: true,
-      // request: ({ method, params }, callback) => {
-      //   walletRequest(method, params, chain)
-      //       .then(result => {
-      //         if (callback) {
-      //           callback(result); // Call the callback with the result
-      //         }
-      //       })
-      //       .catch(error => {
-      //         if (callback) {
-      //           callback(error); // Call the callback with the error
-      //         }
-      //       });
-      // },
-      // request: async ({ method, params }) => walletRequest(method, params, chain),
       request: ({ method, params }, callback) => {
-        walletRequest(method, params, chain, (error, result) => {
-          if (error) {
-            callback(error);
-          } else {
-            console.log('createWalletObject: result: ', result);
-            callback(null, result);
-          }
-        });
+        if (callback) {
+          // If a callback is provided, use it
+          walletRequest(method, params, chain, (error, result) => {
+            if (error) {
+              callback(error);
+            } else {
+              console.log('createWalletObject: result: ', result);
+              callback(null, result);
+            }
+          });
+        } else {
+          // If no callback is provided, return a promise
+          return new Promise((resolve, reject) => {
+            walletRequest(method, params, chain, (error, result) => {
+              if (error) {
+                reject(error);
+              } else {
+                console.log('createWalletObject: result: ', result);
+                resolve(result);
+              }
+            });
+          });
+        }
       },
       send: (payload, param1, callback) =>
         callback ? sendRequestAsync(payload, param1, callback) : sendRequestSync(payload),
