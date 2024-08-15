@@ -8,6 +8,7 @@ window.addEventListener('message', event => {
   const { method, params, chain, requestInfo } = event.data;
   // Forward the request to the background script
   chrome.runtime.sendMessage({ type: 'WALLET_REQUEST', method, params, chain, requestInfo }, response => {
+    console.log(tag, 'response: ', response);
     // Send the response back to the web page
     window.postMessage({ type: 'WALLET_RESPONSE', method, result: response }, '*');
   });

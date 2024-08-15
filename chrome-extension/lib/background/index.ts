@@ -143,7 +143,7 @@ chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: a
   console.log(tag, 'message:', message);
   console.log(tag, 'message:', message.type);
 
-  if (message.type === 'WALLET_RESPONSE') {
+  if (message.type === 'WALLET_REQUEST') {
     console.log(tag, 'Background script received WALLET_REQUEST:', message);
     const { method, params, requestInfo, chain } = message;
     console.log(tag, 'chain:', chain);

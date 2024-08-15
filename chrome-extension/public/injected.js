@@ -31,7 +31,6 @@
       console.log(tag, 'method:', method);
       console.log(tag, 'params:', params);
       console.log(tag, 'chain:', chain);
-      // console.log(tag, 'window object:', window);
 
       return await new Promise((resolve, reject) => {
         window.postMessage({ type: 'WALLET_REQUEST', method, params, chain, requestInfo, tag: TAG }, '*');
@@ -69,12 +68,11 @@
     };
   }
 
-  function mountWallet() {
-    const tag = TAG + ' | window.wallet | ';
-    const wallet = {
-      isMetaMask: true,
+  function createWalletObject(chain) {
+    return {
+      isMetaMask: chain === 'ethereum',
       isKeepKey: true,
-      request: async ({ method, params, chain }) => walletRequest(method, params, chain),
+      request: async ({ method, params }) => walletRequest(method, params, chain),
       send: (payload, callback) => (callback ? sendRequestAsync(payload, callback) : sendRequestSync(payload)),
       sendAsync: (payload, callback) => sendRequestAsync(payload, callback),
       on: (event, handler) => window.addEventListener(event, handler),
@@ -85,36 +83,24 @@
       chainId: '0x1',
       networkVersion: '1',
     };
+  }
 
+  function mountWallet() {
+    const tag = TAG + ' | window.wallet | ';
+
+    // Create uniform wallet objects for each chain
+    const ethereum = createWalletObject('ethereum');
     const xfi = {
-      binance: {
-        request: async ({ method, params }) => walletRequest(method, params, 'binance'),
-      },
-      bitcoin: {
-        request: async ({ method, params }) => walletRequest(method, params, 'bitcoin'),
-      },
-      bitcoincash: {
-        request: async ({ method, params }) => walletRequest(method, params, 'bitcoincash'),
-      },
-      dogecoin: {
-        request: async ({ method, params }) => walletRequest(method, params, 'dogecoin'),
-      },
-      ethereum: wallet, // Using the same wallet object for Ethereum
-      keplr: {
-        request: async ({ method, params }) => walletRequest(method, params, 'keplr'),
-      },
-      litecoin: {
-        request: async ({ method, params }) => walletRequest(method, params, 'litecoin'),
-      },
-      thorchain: {
-        request: async ({ method, params }) => walletRequest(method, params, 'thorchain'),
-      },
-      mayachain: {
-        request: async ({ method, params }) => walletRequest(method, params, 'mayachain'),
-      },
-      solana: {
-        request: async ({ method, params }) => walletRequest(method, params, 'solana'),
-      },
+      binance: createWalletObject('binance'),
+      bitcoin: createWalletObject('bitcoin'),
+      bitcoincash: createWalletObject('bitcoincash'),
+      dogecoin: createWalletObject('dogecoin'),
+      ethereum: createWalletObject('ethereum'),
+      keplr: createWalletObject('keplr'),
+      litecoin: createWalletObject('litecoin'),
+      thorchain: createWalletObject('thorchain'),
+      mayachain: createWalletObject('mayachain'),
+      solana: createWalletObject('solana'),
     };
 
     const handler = {
@@ -128,7 +114,7 @@
       },
     };
 
-    const proxyWallet = new Proxy(wallet, handler);
+    const proxyEthereum = new Proxy(ethereum, handler);
     const proxyXfi = new Proxy(xfi, handler);
 
     const info = {
@@ -138,22 +124,8 @@
       rdns: 'com.keepkey',
     };
 
-    // const announceEvent = new CustomEvent('eip6963:announceProvider', {
-    //   detail: Object.freeze({ info, provider: proxyWallet }),
-    // });
-    //
-    // function announceProvider() {
-    //   window.dispatchEvent(announceEvent);
-    // }
-
-    // window.addEventListener('eip6963:requestProvider', () => {
-    //   announceProvider();
-    // });
-    // announceProvider();
-    //TODO debug sending event with empty info
-
-    Object.defineProperty(window, 'wallet', {
-      value: proxyWallet,
+    Object.defineProperty(window, 'ethereum', {
+      value: proxyEthereum,
       writable: false,
       configurable: true,
     });
@@ -164,7 +136,16 @@
       configurable: true,
     });
 
-    console.log(tag, 'window.wallet and window.xfi have been mounted');
+    console.log(tag, 'window.ethereum and window.xfi have been mounted');
+
+    const announceEvent = new CustomEvent('eip6963:announceProvider', {
+      detail: Object.freeze({ info, provider: proxyEthereum }),
+    });
+
+    function announceProvider() {
+      window.dispatchEvent(announceEvent);
+    }
+    announceProvider();
   }
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
