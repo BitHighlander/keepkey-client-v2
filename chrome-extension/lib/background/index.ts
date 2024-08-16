@@ -1,7 +1,7 @@
 import 'webextension-polyfill';
 import packageJson from '../../package.json'; // Adjust the path as needed
 import { onStartKeepkey } from './keepkey';
-import { handleEthereumRequest } from './methods';
+import { handleWalletRequest } from './methods';
 import { listenForApproval } from './approvals';
 import { JsonRpcProvider } from 'ethers';
 
@@ -140,17 +140,19 @@ onStart();
 // Listen for messages from the content script
 chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: any) => {
   const tag = TAG + ' | chrome.runtime.onMessage | ';
-  // console.log(tag, 'message:', message);
+  console.log(tag, 'message:', message);
+  console.log(tag, 'message:', message.type);
 
-  if (message.type === 'ETH_REQUEST') {
-    // console.log(tag, 'Background script received ETH_REQUEST:', message);
-    const { method, params, requestInfo } = message;
-    // console.log(tag, 'requestInfo:', requestInfo);
-    // console.log(tag, 'method:', method);
-    // console.log(tag, 'params:', params);
+  if (message.type === 'WALLET_REQUEST') {
+    console.log(tag, 'Background script received WALLET_REQUEST:', message);
+    const { method, params, requestInfo, chain } = message;
+    console.log(tag, 'chain:', chain);
+    console.log(tag, 'requestInfo:', requestInfo);
+    console.log(tag, 'method:', method);
+    console.log(tag, 'params:', params);
     // console.log(tag, 'ADDRESS:', ADDRESS);
 
-    handleEthereumRequest(requestInfo, method, params, provider, KEEPKEY_SDK, ADDRESS)
+    handleWalletRequest(requestInfo, chain, method, params, provider, KEEPKEY_SDK, ADDRESS)
       .then(result => {
         // console.log(tag, 'result:', result);
         const receivedResultString = JSON.stringify(result);
