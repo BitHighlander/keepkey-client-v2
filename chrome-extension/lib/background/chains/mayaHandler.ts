@@ -15,7 +15,7 @@ export const createProviderRpcError = (code: number, message: string, data?: unk
   return error;
 };
 
-export const handleBitcoinRequest = async (
+export const handleMayaRequest = async (
   method: string,
   params: any[],
   provider: JsonRpcProvider,
@@ -25,23 +25,15 @@ export const handleBitcoinRequest = async (
   KEEPKEY_SDK: any,
   requireApproval: (requestInfo: any, chain: any, method: string, params: any) => Promise<void>,
 ): Promise<any> => {
-  const tag = TAG + ' | handleBitcoinRequest | ';
+  const tag = TAG + ' | handleMayaRequest | ';
   console.log(tag, 'method:', method);
   console.log(tag, 'params:', params);
   switch (method) {
     case 'request_accounts': {
       //Unsigned TX
-      let addressInfo = {
-        addressNList: [2147483732, 2147483648, 2147483648, 0, 0],
-        coin: 'Bitcoin',
-        scriptType: 'p2wpkh',
-        showDisplay: false,
-      };
-      let response = await KEEPKEY_SDK.address.utxoGetAddress({
-        address_n: addressInfo.addressNList,
-        script_type: addressInfo.scriptType,
-        coin: addressInfo.coin,
-      });
+      let addressInfo = { address_n: [2147483692, 2147484579, 2147483648, 0, 0] };
+
+      let response = await KEEPKEY_SDK.address.mayachainGetAddress(addressInfo);
       console.log('response: ', response);
       console.log(tag, method + ' Returning', response);
       return [response.address];

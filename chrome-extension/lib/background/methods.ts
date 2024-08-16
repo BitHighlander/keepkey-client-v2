@@ -4,6 +4,14 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { handleEthereumRequest } from './chains/ethereumHandler';
 import { handleThorchainRequest } from './chains/thorchainHandler';
+import { handleBitcoinRequest } from './chains/bitcoinHandler';
+import { handleBitcoinCashRequest } from './chains/bitcoinCashHandler';
+import { handleDogecoinRequest } from './chains/dogecoinHandler';
+import { handleLitecoinRequest } from './chains/litecoinHandler';
+import { handleDashRequest } from './chains/dashHandler';
+import { handleCosmosRequest } from './chains/cosmosHandler';
+import { handleMayaRequest } from './chains/mayaHandler';
+
 const TAG = ' | METHODS | ';
 const DOMAIN_WHITE_LIST = [];
 
@@ -146,9 +154,67 @@ export const handleWalletRequest = async (
           requireApproval,
         );
       }
-      // Placeholder cases for other chains
-      case 'bitcoin':
-      case 'thorchain':
+      case 'bitcoin': {
+        return await handleBitcoinRequest(
+          method,
+          params,
+          provider,
+          CURRENT_PROVIDER,
+          requestInfo,
+          ADDRESS,
+          KEEPKEY_SDK,
+          requireApproval,
+        );
+      }
+      case 'bitcoincash': {
+        return await handleBitcoinCashRequest(
+          method,
+          params,
+          provider,
+          CURRENT_PROVIDER,
+          requestInfo,
+          ADDRESS,
+          KEEPKEY_SDK,
+          requireApproval,
+        );
+      }
+      case 'dogecoin': {
+        return await handleDogecoinRequest(
+          method,
+          params,
+          provider,
+          CURRENT_PROVIDER,
+          requestInfo,
+          ADDRESS,
+          KEEPKEY_SDK,
+          requireApproval,
+        );
+      }
+      case 'litecoin': {
+        return await handleLitecoinRequest(
+          method,
+          params,
+          provider,
+          CURRENT_PROVIDER,
+          requestInfo,
+          ADDRESS,
+          KEEPKEY_SDK,
+          requireApproval,
+        );
+      }
+      case 'dash': {
+        return await handleDashRequest(
+          method,
+          params,
+          provider,
+          CURRENT_PROVIDER,
+          requestInfo,
+          ADDRESS,
+          KEEPKEY_SDK,
+          requireApproval,
+        );
+      }
+      case 'thorchain': {
         return await handleThorchainRequest(
           method,
           params,
@@ -159,10 +225,30 @@ export const handleWalletRequest = async (
           KEEPKEY_SDK,
           requireApproval,
         );
-      case 'avalanche':
-      case 'polygon': {
-        // Handle other chains here
-        return null; // Placeholder
+      }
+      case 'cosmos': {
+        return await handleCosmosRequest(
+          method,
+          params,
+          provider,
+          CURRENT_PROVIDER,
+          requestInfo,
+          ADDRESS,
+          KEEPKEY_SDK,
+          requireApproval,
+        );
+      }
+      case 'mayachain': {
+        return await handleMayaRequest(
+          method,
+          params,
+          provider,
+          CURRENT_PROVIDER,
+          requestInfo,
+          ADDRESS,
+          KEEPKEY_SDK,
+          requireApproval,
+        );
       }
       default: {
         console.log(tag, `Chain ${chain} not supported`);

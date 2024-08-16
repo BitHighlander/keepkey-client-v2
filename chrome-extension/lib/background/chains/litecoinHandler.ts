@@ -15,7 +15,7 @@ export const createProviderRpcError = (code: number, message: string, data?: unk
   return error;
 };
 
-export const handleBitcoinRequest = async (
+export const handleLitecoinRequest = async (
   method: string,
   params: any[],
   provider: JsonRpcProvider,
@@ -25,16 +25,16 @@ export const handleBitcoinRequest = async (
   KEEPKEY_SDK: any,
   requireApproval: (requestInfo: any, chain: any, method: string, params: any) => Promise<void>,
 ): Promise<any> => {
-  const tag = TAG + ' | handleBitcoinRequest | ';
+  const tag = TAG + ' | handleLitecoinRequest | ';
   console.log(tag, 'method:', method);
   console.log(tag, 'params:', params);
   switch (method) {
     case 'request_accounts': {
       //Unsigned TX
       let addressInfo = {
-        addressNList: [2147483732, 2147483648, 2147483648, 0, 0],
-        coin: 'Bitcoin',
-        scriptType: 'p2wpkh',
+        addressNList: [0x80000000 + 44, 0x80000000 + 2, 0x80000000 + 0, 0, 0],
+        coin: 'Litecoin',
+        scriptType: 'p2pkh',
         showDisplay: false,
       };
       let response = await KEEPKEY_SDK.address.utxoGetAddress({
