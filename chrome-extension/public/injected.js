@@ -1,6 +1,6 @@
 (function () {
   const TAG = ' | InjectedScript | ';
-  const VERSION = '1.0.3';
+  const VERSION = '1.0.4';
   console.log('**** KeepKey Injection script ****: ', VERSION);
   const SITE_URL = window.location.href;
   const SOURCE_INFO = {
@@ -11,50 +11,7 @@
   };
   console.log('SOURCE_INFO: ', SOURCE_INFO);
 
-  // async function walletRequest(method, params = [], chain = '') {
-  //   let tag = TAG + ' | walletRequest | ';
-  //   try {
-  //     const requestInfo = {
-  //       method,
-  //       params,
-  //       chain,
-  //       siteUrl: SOURCE_INFO.siteUrl,
-  //       scriptSource: SOURCE_INFO.scriptSource,
-  //       version: SOURCE_INFO.version,
-  //       requestTime: new Date().toISOString(),
-  //       referrer: document.referrer,
-  //       href: window.location.href,
-  //       userAgent: navigator.userAgent,
-  //       platform: navigator.platform,
-  //       language: navigator.language,
-  //     };
-  //     console.log(tag, 'method:', method);
-  //     console.log(tag, 'params:', params);
-  //     console.log(tag, 'chain:', chain);
-  //
-  //     return await new Promise((resolve, reject) => {
-  //       window.postMessage({ type: 'WALLET_REQUEST', method, params, chain, requestInfo, tag: TAG }, '*');
-  //
-  //       function handleMessage(event) {
-  //         if (event.data.result && event.data.method === method) {
-  //           console.log(tag, 'Resolving response:', event.data.result);
-  //           // resolve(event.data.result);
-  //           return event.data.result
-  //           window.removeEventListener('message', handleMessage);
-  //         } else {
-  //           console.log(tag, 'Ignoring message:', event.data);
-  //         }
-  //       }
-  //
-  //       window.addEventListener('message', handleMessage);
-  //     });
-  //   } catch (error) {
-  //     console.error(tag, `Error in ${TAG}:`, error);
-  //     throw error;
-  //   }
-  // }
-
-  function walletRequest(method, params = [], chain = '', callback) {
+  function walletRequest(method, params = [], chain, callback) {
     const tag = TAG + ' | walletRequest | ';
     try {
       const requestInfo = {
@@ -102,6 +59,8 @@
     console.log(tag, 'param1:', param1);
     console.log(tag, 'callback:', callback);
 
+    //if !payload.chain use chain state
+
     if (typeof callback === 'function') {
       walletRequest(payload.method, payload.params, payload.chain).then(
         result => callback(null, { id: payload.id, jsonrpc: '2.0', result }),
@@ -124,7 +83,7 @@
   }
 
   function createWalletObject(chain) {
-    console.log('payload:', chain);
+    console.log('chain:', chain);
     let wallet = {
       network: 'mainnet',
       isKeepKey: true,
@@ -153,9 +112,20 @@
           });
         }
       },
-      send: (payload, param1, callback) =>
-        callback ? sendRequestAsync(payload, param1, callback) : sendRequestSync(payload),
-      sendAsync: (payload, param1, callback) => sendRequestAsync(payload, param1, callback),
+      send: (payload, param1, callback) => {
+        // Inject the initialized chain into the payload if not already set
+        if (!payload.chain) {
+          payload.chain = chain;
+        }
+        return callback ? sendRequestAsync(payload, param1, callback) : sendRequestSync(payload);
+      },
+      sendAsync: (payload, param1, callback) => {
+        // Inject the initialized chain into the payload if not already set
+        if (!payload.chain) {
+          payload.chain = chain;
+        }
+        return sendRequestAsync(payload, param1, callback);
+      },
       on: (event, handler) => window.addEventListener(event, handler),
       removeListener: (event, handler) => window.removeEventListener(event, handler),
       removeAllListeners: () => {

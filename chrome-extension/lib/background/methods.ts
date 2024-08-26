@@ -134,6 +134,7 @@ export const handleWalletRequest = async (
   try {
     console.log(tag, 'chain:', chain);
     console.log(tag, 'requestInfo:', requestInfo);
+    if (!chain) throw Error('Chain not provided!');
     if (!requestInfo) throw Error('Cannot validate request! Refusing to proceed.');
 
     if (!ADDRESS || !ADDRESS.length) {
