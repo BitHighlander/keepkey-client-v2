@@ -146,24 +146,30 @@ chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: a
   if (message.type === 'WALLET_REQUEST') {
     console.log(tag, 'Background script received WALLET_REQUEST:', message);
     const { method, params, requestInfo, chain } = message;
+    //@TODO spammy false requests?
+    // if(!method) throw Error('invalid request: method is required');
     console.log(tag, 'chain:', chain);
     console.log(tag, 'requestInfo:', requestInfo);
     console.log(tag, 'method:', method);
     console.log(tag, 'params:', params);
     // console.log(tag, 'ADDRESS:', ADDRESS);
 
-    handleWalletRequest(requestInfo, chain, method, params, provider, KEEPKEY_SDK, ADDRESS)
-      .then(result => {
-        // console.log(tag, 'result:', result);
-        const receivedResultString = JSON.stringify(result);
-        const receivedResultLength = receivedResultString.length;
-        console.log(tag, '(STEP 2) receivedResultString:', receivedResultString);
-        console.log(tag, '(STEP 2) receivedResultLength:', receivedResultLength);
-        sendResponse(result);
-      })
-      .catch(error => {
-        sendResponse({ error: error.message });
-      });
+    if (method) {
+      handleWalletRequest(requestInfo, chain, method, params, provider, KEEPKEY_SDK, ADDRESS)
+        .then(result => {
+          // console.log(tag, 'result:', result);
+          const receivedResultString = JSON.stringify(result);
+          const receivedResultLength = receivedResultString.length;
+          console.log(tag, '(STEP 2) receivedResultString:', receivedResultString);
+          console.log(tag, '(STEP 2) receivedResultLength:', receivedResultLength);
+          sendResponse(result);
+        })
+        .catch(error => {
+          sendResponse({ error: error.message });
+        });
+    } else {
+      console.log(tag, 'ignored request: ', message, sender);
+    }
 
     return true; // Indicates that the response is asynchronous
   }
