@@ -130,7 +130,7 @@ export const handleEthereumRequest = async (
   CURRENT_PROVIDER: any,
   requestInfo: any,
   ADDRESS: string,
-  KEEPKEY_SDK: any,
+  KEEPKEY_WALLET: any,
   requireApproval: (requestInfo: any, chain: any, method: string, params: any) => Promise<void>,
 ): Promise<any> => {
   const tag = ' | handleEthereumRequest | ';

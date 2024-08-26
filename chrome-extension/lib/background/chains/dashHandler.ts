@@ -1,6 +1,7 @@
 const TAG = ' | thorchainHandler | ';
 import { JsonRpcProvider } from 'ethers';
-
+import { Chain } from '@coinmasters/types';
+import { AssetValue } from '@pioneer-platform/helpers';
 import { EIP155_CHAINS } from '../chains';
 
 interface ProviderRpcError extends Error {
@@ -22,7 +23,7 @@ export const handleDashRequest = async (
   CURRENT_PROVIDER: any,
   requestInfo: any,
   ADDRESS: string,
-  KEEPKEY_SDK: any,
+  KEEPKEY_WALLET: any,
   requireApproval: (requestInfo: any, chain: any, method: string, params: any) => Promise<void>,
 ): Promise<any> => {
   const tag = TAG + ' | handleDashRequest | ';
@@ -30,23 +31,28 @@ export const handleDashRequest = async (
   console.log(tag, 'params:', params);
   switch (method) {
     case 'request_accounts': {
-      let addressInfo = {
-        addressNList: [2147483732, 2147483653, 2147483648, 0, 0],
-        coin: 'Dash',
-        scriptType: 'p2sh',
-        showDisplay: false,
-      };
-      let response = await KEEPKEY_SDK.address.utxoGetAddress({
-        address_n: addressInfo.addressNList,
-        script_type: addressInfo.scriptType,
-        coin: addressInfo.coin,
-      });
-      console.log('response: ', response);
+      let response = await KEEPKEY_WALLET[Chain.Dash].walletMethods.getAddress();
+      console.log(tag, 'response: ', response);
       console.log(tag, method + ' Returning', response);
-      return [response.address];
+      return [response];
     }
-    case 'eth_signTypedData_v4': {
-      throw createProviderRpcError(4200, 'Method eth_signTypedData_v4 not supported');
+    case 'transfer': {
+      //send tx
+      console.log(tag, 'params[0]: ', params[0]);
+      let assetString = 'DASH.DASH';
+      await AssetValue.loadStaticAssets();
+      console.log(tag, 'params[0].amount.amount: ', params[0].amount.amount);
+      let assetValue = await AssetValue.fromString(assetString, parseFloat(params[0].amount.amount));
+      let sendPayload = {
+        from: params[0].from,
+        assetValue,
+        memo: params[0].memo || '',
+        recipient: params[0].recipient,
+      };
+      console.log(tag, 'sendPayload: ', sendPayload);
+      const txHash = await KEEPKEY_WALLET[Chain.Dash].walletMethods.transfer(sendPayload);
+      console.log(tag, 'txHash: ', txHash);
+      return txHash;
     }
     default: {
       console.log(tag, `Method ${method} not supported`);

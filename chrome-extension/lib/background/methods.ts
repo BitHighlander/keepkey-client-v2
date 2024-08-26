@@ -128,7 +128,7 @@ export const handleWalletRequest = async (
   method: string,
   params: any[],
   provider: JsonRpcProvider,
-  KEEPKEY_SDK: any,
+  KEEPKEY_WALLET: any,
   ADDRESS: string,
 ): Promise<any> => {
   const tag = ' | handleWalletRequest | ';
@@ -152,7 +152,7 @@ export const handleWalletRequest = async (
           CURRENT_PROVIDER,
           requestInfo,
           ADDRESS,
-          KEEPKEY_SDK,
+          KEEPKEY_WALLET,
           requireApproval,
         );
       }
@@ -164,7 +164,7 @@ export const handleWalletRequest = async (
           CURRENT_PROVIDER,
           requestInfo,
           ADDRESS,
-          KEEPKEY_SDK,
+          KEEPKEY_WALLET,
           requireApproval,
         );
       }
@@ -176,7 +176,7 @@ export const handleWalletRequest = async (
           CURRENT_PROVIDER,
           requestInfo,
           ADDRESS,
-          KEEPKEY_SDK,
+          KEEPKEY_WALLET,
           requireApproval,
         );
       }
@@ -188,7 +188,7 @@ export const handleWalletRequest = async (
           CURRENT_PROVIDER,
           requestInfo,
           ADDRESS,
-          KEEPKEY_SDK,
+          KEEPKEY_WALLET,
           requireApproval,
         );
       }
@@ -200,7 +200,7 @@ export const handleWalletRequest = async (
           CURRENT_PROVIDER,
           requestInfo,
           ADDRESS,
-          KEEPKEY_SDK,
+          KEEPKEY_WALLET,
           requireApproval,
         );
       }
@@ -212,7 +212,7 @@ export const handleWalletRequest = async (
           CURRENT_PROVIDER,
           requestInfo,
           ADDRESS,
-          KEEPKEY_SDK,
+          KEEPKEY_WALLET,
           requireApproval,
         );
       }
@@ -224,7 +224,7 @@ export const handleWalletRequest = async (
           CURRENT_PROVIDER,
           requestInfo,
           ADDRESS,
-          KEEPKEY_SDK,
+          KEEPKEY_WALLET,
           requireApproval,
         );
       }
@@ -236,7 +236,7 @@ export const handleWalletRequest = async (
           CURRENT_PROVIDER,
           requestInfo,
           ADDRESS,
-          KEEPKEY_SDK,
+          KEEPKEY_WALLET,
           requireApproval,
         );
       }
@@ -248,7 +248,7 @@ export const handleWalletRequest = async (
           CURRENT_PROVIDER,
           requestInfo,
           ADDRESS,
-          KEEPKEY_SDK,
+          KEEPKEY_WALLET,
           requireApproval,
         );
       }

@@ -31,11 +31,14 @@
       console.log(tag, 'method:', method);
       console.log(tag, 'params:', params);
       console.log(tag, 'chain:', chain);
-
       window.postMessage({ type: 'WALLET_REQUEST', method, params, chain, requestInfo, tag: TAG }, '*');
 
       function handleMessage(event) {
-        if (event.data.result && event.data.method === method) {
+        console.log(tag, 'event:', event);
+        console.log(tag, 'event.data.method:', event.data.method);
+        console.log(tag, 'method:', method);
+
+        if (event.data.result && event.data.method && method) {
           console.log(tag, 'Resolving response:', event.data.result);
           if (callback && typeof callback === 'function') {
             callback(null, event.data.result); // Use callback to return the result

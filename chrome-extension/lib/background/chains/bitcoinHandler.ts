@@ -1,7 +1,8 @@
-const TAG = ' | thorchainHandler | ';
+const TAG = ' | bitcoinHandler | ';
 import { JsonRpcProvider } from 'ethers';
-
+import { Chain } from '@coinmasters/types';
 import { EIP155_CHAINS } from '../chains';
+import { AssetValue } from '@pioneer-platform/helpers';
 
 interface ProviderRpcError extends Error {
   code: number;
@@ -22,7 +23,7 @@ export const handleBitcoinRequest = async (
   CURRENT_PROVIDER: any,
   requestInfo: any,
   ADDRESS: string,
-  KEEPKEY_SDK: any,
+  KEEPKEY_WALLET: any,
   requireApproval: (requestInfo: any, chain: any, method: string, params: any) => Promise<void>,
 ): Promise<any> => {
   const tag = TAG + ' | handleBitcoinRequest | ';
@@ -31,23 +32,28 @@ export const handleBitcoinRequest = async (
   switch (method) {
     case 'request_accounts': {
       //Unsigned TX
-      let addressInfo = {
-        addressNList: [2147483732, 2147483648, 2147483648, 0, 0],
-        coin: 'Bitcoin',
-        scriptType: 'p2wpkh',
-        showDisplay: false,
-      };
-      let response = await KEEPKEY_SDK.address.utxoGetAddress({
-        address_n: addressInfo.addressNList,
-        script_type: addressInfo.scriptType,
-        coin: addressInfo.coin,
-      });
-      console.log('response: ', response);
+      let response = await KEEPKEY_WALLET[Chain.Bitcoin].walletMethods.getAddress();
+      console.log(tag, 'response: ', response);
       console.log(tag, method + ' Returning', response);
-      return [response.address];
+      return [response];
     }
-    case 'eth_signTypedData_v4': {
-      throw createProviderRpcError(4200, 'Method eth_signTypedData_v4 not supported');
+    case 'transfer': {
+      //send tx
+      console.log(tag, 'params[0]: ', params[0]);
+      let assetString = 'BTC.BTC';
+      await AssetValue.loadStaticAssets();
+      console.log(tag, 'params[0].amount.amount: ', params[0].amount.amount);
+      let assetValue = await AssetValue.fromString(assetString, parseFloat(params[0].amount.amount));
+      let sendPayload = {
+        from: params[0].from,
+        assetValue,
+        memo: params[0].memo || '',
+        recipient: params[0].recipient,
+      };
+      console.log(tag, 'sendPayload: ', sendPayload);
+      const txHash = await KEEPKEY_WALLET[Chain.Bitcoin].walletMethods.transfer(sendPayload);
+      console.log(tag, 'txHash: ', txHash);
+      return txHash;
     }
     default: {
       console.log(tag, `Method ${method} not supported`);

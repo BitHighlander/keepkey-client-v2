@@ -1,6 +1,7 @@
 const TAG = ' | thorchainHandler | ';
 import { JsonRpcProvider } from 'ethers';
-
+import { Chain } from '@coinmasters/types';
+import { AssetValue } from '@pioneer-platform/helpers';
 import { EIP155_CHAINS } from '../chains';
 
 interface ProviderRpcError extends Error {
@@ -22,24 +23,35 @@ export const handleThorchainRequest = async (
   CURRENT_PROVIDER: any,
   requestInfo: any,
   ADDRESS: string,
-  KEEPKEY_SDK: any,
+  KEEPKEY_WALLET: any,
   requireApproval: (requestInfo: any, chain: any, method: string, params: any) => Promise<void>,
 ): Promise<any> => {
   const tag = TAG + ' | handleThorchainRequest | ';
   console.log(tag, 'method:', method);
   switch (method) {
     case 'request_accounts': {
-      //Unsigned TX
-      let addressInfo = {
-        addressNList: [2147483692, 2147483708, 2147483648, 0, 0],
-      };
-      let response = await KEEPKEY_SDK.address.thorchainGetAddress({ address_n: addressInfo.addressNList });
-      console.log('response: ', response);
+      let response = await KEEPKEY_WALLET[Chain.THORChain].walletMethods.getAddress();
+      console.log(tag, 'response: ', response);
       console.log(tag, method + ' Returning', response);
-      return [response.address];
+      return [response];
     }
-    case 'eth_signTypedData_v4': {
-      throw createProviderRpcError(4200, 'Method eth_signTypedData_v4 not supported');
+    case 'transfer': {
+      //send tx
+      console.log(tag, 'params[0]: ', params[0]);
+      let assetString = 'THOR.RUNE';
+      await AssetValue.loadStaticAssets();
+      console.log(tag, 'params[0].amount.amount: ', params[0].amount.amount);
+      let assetValue = await AssetValue.fromString(assetString, parseFloat(params[0].amount.amount));
+      let sendPayload = {
+        from: params[0].from,
+        assetValue,
+        memo: params[0].memo || '',
+        recipient: params[0].recipient,
+      };
+      console.log(tag, 'sendPayload: ', sendPayload);
+      const txHash = await KEEPKEY_WALLET[Chain.THORChain].walletMethods.transfer(sendPayload);
+      console.log(tag, 'txHash: ', txHash);
+      return txHash;
     }
     default: {
       console.log(tag, `Method ${method} not supported`);

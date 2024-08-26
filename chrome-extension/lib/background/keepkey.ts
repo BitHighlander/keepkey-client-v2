@@ -1,8 +1,11 @@
+/*
+    KeepKey Wallet
+ */
 import { AssetValue } from '@pioneer-platform/helpers';
-import { ChainToNetworkId, getChainEnumValue } from '@coinmasters/types';
+import { WalletOption, ChainToNetworkId, getChainEnumValue } from '@coinmasters/types';
 import { getPaths } from '@pioneer-platform/pioneer-coins';
 import { keepKeyApiKeyStorage } from '@chrome-extension-boilerplate/storage'; // Re-import the storage
-
+const TAG = ' | KeepKey | ';
 interface KeepKeyWallet {
   type: string;
   icon: string;
@@ -12,26 +15,54 @@ interface KeepKeyWallet {
   isConnected: boolean;
 }
 
-const getWalletByChain = async (keepkey: any, chain: any) => {
-  if (!keepkey[chain]) return null;
-
-  const walletMethods = keepkey[chain].walletMethods;
-  const address = await walletMethods.getAddress();
-  if (!address) return null;
-
-  let balance = [];
-  if (walletMethods.getPubkeys) {
-    const pubkey = await walletMethods.getPubkeys();
-    console.log('** pubkey: ', pubkey);
-    const pubkeyBalance = await walletMethods.getBalance([pubkey]);
-    console.log('pubkeyBalance: ', pubkeyBalance);
-    const assetValue = AssetValue.fromChainOrSignature(chain, '0.001');
-    balance = [assetValue];
-  } else {
-    balance = await walletMethods.getBalance([{ address }]);
+const syncWalletByChain = async (keepkey: any, chain: any) => {
+  let tag = TAG + ' | syncWalletByChain | ';
+  if (!keepkey[chain]) throw Error('Missing chain! chain: ' + chain);
+  console.log('syncing chain: ', chain);
+  let balance: any = [];
+  const address = await keepkey[chain].walletMethods.getAddress();
+  console.log('address: ', address);
+  const pubkeys = await keepkey[chain].walletMethods?.getPubkeys();
+  console.log('pubkeys: ', pubkeys);
+  if (!address) {
+    console.error('Failed to get address for chain! chain: ' + chain);
+  }
+  if (pubkeys.length <= 0) {
+    console.error('Failed to get pubkeys for chain! chain: ' + chain);
   }
 
-  return { address, balance };
+  // eslint-disable-next-line @typescript-eslint/prefer-for-of
+  for (let i = 0; i < pubkeys.length; i++) {
+    let pubkey = pubkeys[i];
+    //console.log(tag, 'pubkey: ', pubkey);
+    if (!pubkey || !pubkey.networks) continue;
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
+    for (let j = 0; j < pubkey.networks.length; j++) {
+      let networkId = pubkey.networks[j];
+      //console.log(tag, 'networkId: ', networkId);
+      if (networkId.includes('eip155') || pubkey.type === 'address') {
+        //console.log(tag, 'network includes eip155 or is marked address');
+        console.log(tag, 'address: ', address);
+        let balance = await keepkey[chain].walletMethods?.getBalance([{ address }]);
+        //console.log(tag, 'balance: ', balance);
+        balance.push(balance);
+      } else {
+        //console.log(tag, 'Scan Xpub or other public key type');
+        let pubkeyBalances: AssetValue[] = await keepkey[chain].walletMethods?.getBalance([{ pubkey }]);
+        //console.log(tag, 'pubkeyBalances: ', pubkeyBalances);
+        pubkeyBalances.forEach(pubkeyBalance => {
+          balance.push(pubkeyBalance);
+        });
+      }
+    }
+  }
+
+  return {
+    address,
+    pubkeys,
+    balance,
+    walletType: WalletOption.KEEPKEY,
+  };
 };
 
 interface AddChainParams {
@@ -52,8 +83,26 @@ function addChain(keepkey: any, { info, keepkeySdk, chain, walletMethods, wallet
 }
 
 export const onStartKeepkey = async function () {
+  let tag = TAG + ' | onStartKeepkey | ';
   try {
-    const chains = ['ETH'];
+    let chains = [
+      'ARB',
+      'AVAX',
+      'BSC',
+      'BTC',
+      'BCH',
+      'GAIA',
+      'OSMO',
+      'XRP',
+      'DOGE',
+      'DASH',
+      'ETH',
+      'LTC',
+      'OP',
+      'MATIC',
+      'THOR',
+    ];
+
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     const { keepkeyWallet } = await import('@coinmasters/wallet-keepkey');
 
@@ -102,16 +151,15 @@ export const onStartKeepkey = async function () {
 
     // Step 2: Invoke the inner function with chains and paths
     const kkApikey = await connectFunction(chains, paths);
-    console.log('kkApikey: ', kkApikey);
+    console.log(tag, 'kkApikey: ', kkApikey);
     await keepKeyApiKeyStorage.saveApiKey(kkApikey.keepkeyApiKey); // Save the API key using custom storage
 
-    // got balances
-    for (let i = 0; i < chains.length; i++) {
-      const chain = chains[i];
-      const walletData: any = await getWalletByChain(keepkey, chain);
-      console.log('chain: ', chain);
-      keepkey[chain].wallet.balance = walletData.balance;
-    }
+    // get balances
+    // for (let i = 0; i < chains.length; i++) {
+    //   const chain = chains[i];
+    //   const walletData: any = await syncWalletByChain(keepkey, chain);
+    //   console.log(tag,'chain: ', chain);
+    // }
 
     return keepkey;
   } catch (e) {

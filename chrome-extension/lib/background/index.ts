@@ -104,7 +104,7 @@ const provider = new JsonRpcProvider(EIP155_CHAINS['eip155:1'].rpc);
 
 // Begin KK
 let ADDRESS = '';
-let KEEPKEY_SDK: any = '';
+let KEEPKEY_WALLET: any = '';
 const onStart = async function () {
   const tag = TAG + ' | onStart | ';
   try {
@@ -122,10 +122,10 @@ const onStart = async function () {
     // Set addresses
     ADDRESS = address;
     console.log(tag, '**** keepkey: ', keepkey);
-    KEEPKEY_SDK = keepkey.ETH.keepkeySdk;
-    // console.log(tag, 'keepkeySdk: ', KEEPKEY_SDK);
+    KEEPKEY_WALLET = keepkey;
+    console.log(tag, 'KEEPKEY_WALLET: ', KEEPKEY_WALLET);
     // Start listening for approval events
-    listenForApproval(KEEPKEY_SDK, ADDRESS);
+    listenForApproval(KEEPKEY_WALLET, ADDRESS);
   } catch (e) {
     KEEPKEY_STATE = 4; // errored
     updateIcon();
@@ -155,7 +155,7 @@ chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: a
     // console.log(tag, 'ADDRESS:', ADDRESS);
 
     if (method) {
-      handleWalletRequest(requestInfo, chain, method, params, provider, KEEPKEY_SDK, ADDRESS)
+      handleWalletRequest(requestInfo, chain, method, params, provider, KEEPKEY_WALLET, ADDRESS)
         .then(result => {
           // console.log(tag, 'result:', result);
           const receivedResultString = JSON.stringify(result);
