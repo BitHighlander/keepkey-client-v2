@@ -6,8 +6,10 @@ import {
   completedStorage,
   assetContextStorage,
 } from './customStorage';
+import { chainIdStorage } from './providerStorage';
 
 export {
+  chainIdStorage,
   keepKeyApiKeyStorage,
   requestStorage,
   approvalStorage,

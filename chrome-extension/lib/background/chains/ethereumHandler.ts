@@ -17,15 +17,15 @@ import { EIP155_CHAINS } from '../chains';
 const TAG = ' | ethereumHandler | ';
 const DOMAIN_WHITE_LIST = [];
 
-const CURRENT_PROVIDER: any = {
-  chainId: '0x1',
-  caip: 'eip155:1/slip44:60',
-  blockExplorerUrls: ['https://etherscan.io'],
-  name: 'Ethereum',
-  providerUrl: 'https://eth.llamarpc.com',
-  provider: new JsonRpcProvider('https://eth.llamarpc.com'),
-  fallbacks: [],
-};
+// const CURRENT_PROVIDER: any = {
+//   blockExplorerUrls: ['https://etherscan.io'],
+//   caip: 'eip155:1/slip44:60',
+//   chainId: '0x1',
+//   name: 'Ethereum',
+//   providerUrl: 'https://eth.llamarpc.com',
+//   provider: new JsonRpcProvider('https://eth.llamarpc.com'),
+//   fallbacks: [],
+// };
 
 interface ChainInfo {
   chainId: string;
@@ -131,7 +131,7 @@ export const handleEthereumRequest = async (
   requireApproval: (requestInfo: any, chain: any, method: string, params: any) => Promise<void>,
 ): Promise<any> => {
   const tag = ' | handleEthereumRequest | ';
-
+  console.log('CURRENT_PROVIDER:', CURRENT_PROVIDER);
   switch (method) {
     case 'eth_chainId': {
       console.log(tag, 'Returning eth_chainId:', CURRENT_PROVIDER.chainId);
@@ -321,7 +321,7 @@ export const handleEthereumRequest = async (
       console.log(tag, 'method:', method);
       console.log(tag, 'params:', params);
 
-      let approvalResponse = await processApprovedEvent(method, params, KEEPKEY_WALLET, ADDRESS);
+      let approvalResponse = await processApprovedEvent(method, params, CURRENT_PROVIDER, KEEPKEY_WALLET, ADDRESS);
       //after approval
       return approvalResponse;
     }
@@ -336,7 +336,13 @@ export const handleEthereumRequest = async (
   }
 };
 
-const processApprovedEvent = async (method: string, params: any, KEEPKEY_WALLET: any, ADDRESS: string) => {
+const processApprovedEvent = async (
+  method: string,
+  params: any,
+  CURRENT_PROVIDER: any,
+  KEEPKEY_WALLET: any,
+  ADDRESS: string,
+) => {
   try {
     console.log(TAG, 'processApprovedEvent method:', method);
     console.log(TAG, 'processApprovedEvent params:', params);
@@ -359,7 +365,7 @@ const processApprovedEvent = async (method: string, params: any, KEEPKEY_WALLET:
         result = await signMessage(params, KEEPKEY_WALLET);
         break;
       case 'eth_sendTransaction':
-        result = await sendTransaction(params, CURRENT_PROVIDER.provider, KEEPKEY_WALLET, ADDRESS);
+        result = await sendTransaction(params, CURRENT_PROVIDER, CURRENT_PROVIDER.provider, KEEPKEY_WALLET, ADDRESS);
         break;
       case 'eth_signTypedData':
         result = await signTypedData(params, KEEPKEY_WALLET, ADDRESS);
@@ -488,7 +494,13 @@ const broadcastTransaction = async (signedTx: string, networkId: string, provide
   }
 };
 
-const sendTransaction = async (params: any, provider: JsonRpcProvider, KEEPKEY_WALLET: any, ADDRESS: string) => {
+const sendTransaction = async (
+  params: any,
+  CURRENT_PROVIDER: any,
+  provider: JsonRpcProvider,
+  KEEPKEY_WALLET: any,
+  ADDRESS: string,
+) => {
   const tag = ' | sendTransaction | ';
   try {
     console.log(tag, 'User accepted the request'); //TODO approve flow
@@ -501,12 +513,12 @@ const sendTransaction = async (params: any, provider: JsonRpcProvider, KEEPKEY_W
     const signedTx = await signTransaction(transaction, provider, KEEPKEY_WALLET);
     console.log(tag, 'signedTx:', signedTx);
 
-    // const result = await broadcastTransaction(signedTx, chainId, provider);
-    // console.log(tag, 'result:', result);
-    // return result;
+    const result = await broadcastTransaction(signedTx, chainId, provider);
+    console.log(tag, 'result:', result);
+    return result;
 
     //nerf
-    return '0x60b4fbee93d0b884186948a7428841922a9984fe92ecba46a1550a87b7a60715';
+    // return '0x60b4fbee93d0b884186948a7428841922a9984fe92ecba46a1550a87b7a60715';
   } catch (e) {
     console.error(e);
     throw createProviderRpcError(4000, 'Error sending transaction', e);
