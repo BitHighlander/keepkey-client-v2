@@ -160,6 +160,7 @@
       bitcoin: createWalletObject('bitcoin'),
       bitcoincash: createWalletObject('bitcoincash'),
       dogecoin: createWalletObject('dogecoin'),
+      dash: createWalletObject('dash'),
       ethereum: createWalletObject('ethereum'),
       keplr: createWalletObject('keplr'),
       litecoin: createWalletObject('litecoin'),
