@@ -4,11 +4,15 @@
  */
 
 import { JsonRpcProvider } from 'ethers';
+// @ts-ignore
+import { createProviderRpcError } from '../utils'; // Import createProviderRpcError from a common utilities file
 import { requestStorage, approvalStorage, assetContextStorage } from '@chrome-extension-boilerplate/storage';
 import axios from 'axios';
 // import { signMessage, signTransaction, signTypedData, broadcastTransaction, sendTransaction } from './sign';
 import { v4 as uuidv4 } from 'uuid';
 import { EIP155_CHAINS } from '../chains';
+
+// import { signMessage, signTransaction, signTypedData, sendTransaction } from '../sign';
 
 const TAG = ' | ethereumHandler | ';
 const DOMAIN_WHITE_LIST = [];
@@ -49,13 +53,6 @@ interface ProviderRpcError extends Error {
   code: number;
   data?: unknown;
 }
-
-export const createProviderRpcError = (code: number, message: string, data?: unknown): ProviderRpcError => {
-  const error = new Error(message) as ProviderRpcError;
-  error.code = code;
-  if (data) error.data = data;
-  return error;
-};
 
 let isPopupOpen = false; // Flag to track popup state
 
@@ -195,13 +192,15 @@ export const handleEthereumRequest = async (
     }
     case 'wallet_addEthereumChain':
     case 'wallet_switchEthereumChain': {
-      console.log(tag, 'Calling wallet_switchEthereumChain with:', params);
+      console.log(tag, method + ' params:', params);
+      console.log(tag, method + ' requestInfo:', requestInfo);
       if (!params || !params[0] || !params[0].chainId) throw new Error('Invalid chainId (Required)');
       let chainId = 'eip155:' + convertHexToDecimalChainId(params[0].chainId);
       chainId = sanitizeChainId(chainId);
       console.log(tag, 'Calling wallet_switchEthereumChain chainId:', chainId);
       if (params && params[0] && params[0].rpcUrls && params[0].rpcUrls[0]) {
         console.log(tag, 'Given Params for custom chain addition!');
+        console.log(tag, 'params[0]:', params[0]);
         /*
             Example from thechainlist.org:
             {
@@ -227,6 +226,7 @@ export const handleEthereumRequest = async (
         CURRENT_PROVIDER.providerUrl = params[0].rpcUrls[0];
         CURRENT_PROVIDER.provider = new JsonRpcProvider(params[0].rpcUrls[0]);
 
+        console.log('NEW CURRENT_PROVIDER:', CURRENT_PROVIDER);
         //TODO check if loaded locally
         //if new send to pioneer api
       } else {
@@ -246,6 +246,8 @@ export const handleEthereumRequest = async (
             CURRENT_PROVIDER.providerUrl = EIP155_CHAINS[key].rpc;
             CURRENT_PROVIDER.provider = new JsonRpcProvider(EIP155_CHAINS[key].rpc);
             chainFound = true;
+
+            console.log(tag, 'NEW CURRENT_PROVIDER:', CURRENT_PROVIDER);
             break;
           }
         }
@@ -307,9 +309,21 @@ export const handleEthereumRequest = async (
     case 'eth_sendTransaction':
     case 'personal_sign':
     case 'eth_sign': {
-      await requireApproval(requestInfo, 'etherum', method, params[0]);
-      console.log(tag, 'Returning approval response for method:', method);
-      return true;
+      // Request approval and wait for user response
+      // const approvalResponse = await requireApproval(requestInfo, 'ethereum', method, params[0]);
+      // console.log(tag, 'Returning approval response for method:', method);
+      //
+      // // Wait for approval
+      // if (!approvalResponse) {
+      //   console.error(tag, 'Approval was denied or an error occurred');
+      //   return false; // Or handle this scenario as needed
+      // }
+      console.log(tag, 'method:', method);
+      console.log(tag, 'params:', params);
+
+      let approvalResponse = await processApprovedEvent(method, params, KEEPKEY_WALLET, ADDRESS);
+      //after approval
+      return approvalResponse;
     }
     case 'eth_getEncryptionPublicKey':
     case 'eth_signTypedData_v4': {
@@ -319,5 +333,182 @@ export const handleEthereumRequest = async (
       console.log(tag, `Method ${method} not supported`);
       throw createProviderRpcError(4200, `Method ${method} not supported`);
     }
+  }
+};
+
+const processApprovedEvent = async (method: string, params: any, KEEPKEY_WALLET: any, ADDRESS: string) => {
+  try {
+    console.log(TAG, 'processApprovedEvent method:', method);
+    console.log(TAG, 'processApprovedEvent params:', params);
+    // const EIP155_CHAINS = {
+    //   'eip155:1': {
+    //     chainId: 1,
+    //     name: 'Ethereum',
+    //     logo: '/chain-logos/eip155-1.png',
+    //     rgb: '99, 125, 234',
+    //     rpc: 'https://eth.llamarpc.com',
+    //     namespace: 'eip155',
+    //   },
+    // };
+    // // const provider = new JsonRpcProvider(EIP155_CHAINS['eip155:1'].rpc);
+
+    let result;
+    switch (method) {
+      case 'personal_sign':
+      case 'eth_sign':
+        result = await signMessage(params, KEEPKEY_WALLET);
+        break;
+      case 'eth_sendTransaction':
+        result = await sendTransaction(params, CURRENT_PROVIDER.provider, KEEPKEY_WALLET, ADDRESS);
+        break;
+      case 'eth_signTypedData':
+        result = await signTypedData(params, KEEPKEY_WALLET, ADDRESS);
+        break;
+      default:
+        console.error(TAG, `Unsupported event type: ${method}`);
+        throw createProviderRpcError(4200, `Method ${method} not supported`);
+    }
+
+    console.log(TAG, `Returning result for method ${method}:`, result);
+    return result;
+  } catch (error) {
+    console.error(TAG, 'Error processing approved event:', error);
+    throw error; // Re-throw the error so it can be handled upstream if needed
+  }
+};
+
+const signMessage = async (message: any, KEEPKEY_SDK: any) => {
+  try {
+    console.log('signMessage: ', message);
+    console.log('KEEPKEY_SDK.ETH.walletMethods: ', KEEPKEY_SDK.ETH.walletMethods);
+    const address = KEEPKEY_SDK.ETH.wallet.address;
+    const messageFormatted = `0x${Buffer.from(
+      Uint8Array.from(typeof message === 'string' ? new TextEncoder().encode(message) : message),
+    ).toString('hex')}`;
+    return KEEPKEY_SDK.eth.ethSign({ address, message: messageFormatted });
+  } catch (e) {
+    console.error(e);
+    throw createProviderRpcError(4000, 'Error signing message', e);
+  }
+};
+
+const signTransaction = async (transaction: any, provider: JsonRpcProvider, KEEPKEY_WALLET: any) => {
+  const tag = ' | signTransaction | ';
+  try {
+    console.log(tag, '**** transaction: ', transaction);
+    console.log(tag, '**** KEEPKEY_WALLET: ', KEEPKEY_WALLET);
+    console.log(tag, '**** KEEPKEY_WALLET: ', KEEPKEY_WALLET.ETH);
+    console.log(tag, '**** KEEPKEY_WALLET: ', KEEPKEY_WALLET.ETH.keepkeySdk);
+    let KEEPKEY_SDK = KEEPKEY_WALLET.ETH.keepkeySdk;
+
+    if (!transaction.from) throw createProviderRpcError(4000, 'Invalid transaction: missing from');
+    if (!transaction.to) throw createProviderRpcError(4000, 'Invalid transaction: missing to');
+    if (!transaction.chainId) throw createProviderRpcError(4000, 'Invalid transaction: missing chainId');
+
+    const nonce = await provider.getTransactionCount(transaction.from, 'pending');
+    transaction.nonce = `0x${nonce.toString(16)}`;
+
+    const feeData = await provider.getFeeData();
+    console.log('feeData: ', feeData);
+    transaction.gasPrice = `0x${BigInt(feeData.gasPrice || '0').toString(16)}`;
+    transaction.maxFeePerGas = `0x${BigInt(feeData.maxFeePerGas || '0').toString(16)}`;
+    transaction.maxPriorityFeePerGas = `0x${BigInt(feeData.maxPriorityFeePerGas || '0').toString(16)}`;
+
+    try {
+      const estimatedGas = await provider.estimateGas({
+        from: transaction.from,
+        to: transaction.to,
+        data: transaction.data,
+      });
+      console.log('estimatedGas: ', estimatedGas);
+      transaction.gas = `0x${estimatedGas.toString(16)}`;
+    } catch (e) {
+      transaction.gas = `0x${BigInt('1000000').toString(16)}`;
+    }
+
+    const input: any = {
+      from: transaction.from,
+      addressNList: [2147483692, 2147483708, 2147483648, 0, 0],
+      data: transaction.data || '0x',
+      nonce: transaction.nonce,
+      gasLimit: transaction.gas,
+      gas: transaction.gas,
+      value: transaction.value || '0x0',
+      to: transaction.to,
+      chainId: `0x${transaction.chainId.toString(16)}`,
+      gasPrice: transaction.gasPrice,
+      maxFeePerGas: transaction.maxFeePerGas,
+      maxPriorityFeePerGas: transaction.maxPriorityFeePerGas,
+    };
+
+    console.log(`${tag} Final input: `, input);
+    console.log(`${tag} KEEPKEY_SDK: `, KEEPKEY_SDK);
+    const output = await KEEPKEY_SDK.eth.ethSignTransaction(input);
+    console.log(`${tag} Transaction output: `, output);
+
+    return output.serialized;
+  } catch (e) {
+    console.error(`${tag} Error: `, e);
+    throw createProviderRpcError(4000, 'Error signing transaction', e);
+  }
+};
+
+const signTypedData = async (params: any, KEEPKEY_SDK: any, ADDRESS: string) => {
+  const tag = ' | signTypedData | ';
+  try {
+    console.log(tag, '**** params: ', params);
+    console.log(tag, '**** params: ', typeof params);
+    if (typeof params === 'string') params = JSON.parse(params);
+
+    const payload = {
+      address: ADDRESS,
+      addressNList: [2147483692, 2147483708, 2147483648, 0, 0], //TODO multi path
+      typedData: params,
+    };
+    console.log(tag, '**** payload: ', payload);
+
+    const signedMessage = await KEEPKEY_SDK.eth.ethSignTypedData(payload);
+    console.log(tag, '**** signedMessage: ', signedMessage);
+    return signedMessage;
+  } catch (e) {
+    console.error(`${tag} Error: `, e);
+    throw createProviderRpcError(4000, 'Error signing typed data', e);
+  }
+};
+
+const broadcastTransaction = async (signedTx: string, networkId: string, provider: JsonRpcProvider) => {
+  try {
+    const receipt = await provider.send('eth_sendRawTransaction', [signedTx]);
+    console.log('Transaction receipt:', receipt);
+
+    return receipt;
+  } catch (e) {
+    console.error(e);
+    throw createProviderRpcError(4000, 'Error broadcasting transaction', e);
+  }
+};
+
+const sendTransaction = async (params: any, provider: JsonRpcProvider, KEEPKEY_WALLET: any, ADDRESS: string) => {
+  const tag = ' | sendTransaction | ';
+  try {
+    console.log(tag, 'User accepted the request'); //TODO approve flow
+    console.log(tag, 'transaction:', params);
+    console.log(tag, 'CURRENT_PROVIDER: ', CURRENT_PROVIDER);
+    const transaction = params[0];
+    const chainId = CURRENT_PROVIDER.chainId; //TODO get chainId from provider
+    transaction.chainId = chainId;
+    transaction.from = ADDRESS;
+    const signedTx = await signTransaction(transaction, provider, KEEPKEY_WALLET);
+    console.log(tag, 'signedTx:', signedTx);
+
+    // const result = await broadcastTransaction(signedTx, chainId, provider);
+    // console.log(tag, 'result:', result);
+    // return result;
+
+    //nerf
+    return '0x60b4fbee93d0b884186948a7428841922a9984fe92ecba46a1550a87b7a60715';
+  } catch (e) {
+    console.error(e);
+    throw createProviderRpcError(4000, 'Error sending transaction', e);
   }
 };

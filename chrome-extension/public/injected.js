@@ -77,11 +77,18 @@
   function sendRequestSync(payload, param1) {
     const tag = TAG + ' | sendRequestSync | ';
     console.log(tag, 'wallet.sendSync called with:', payload);
+    console.log(tag, 'wallet.sendSync called with:', payload.params);
     console.log(tag, 'wallet.sendSync called with param1:', param1);
+    let params = payload.params || param1;
+    let method = payload.method || payload;
+    let chain = payload.chain || 'ethereum';
+    console.log(tag, 'selected payload:', payload);
+    console.log(tag, 'selected params:', params);
+    console.log(tag, 'selected params:', chain);
     return {
       id: payload.id,
       jsonrpc: '2.0',
-      result: walletRequest(payload.method, payload.params, payload.chain),
+      result: walletRequest(method, params, chain),
     };
   }
 
@@ -119,13 +126,15 @@
         }
       },
       send: (payload, param1, callback) => {
+        console.log('send: ', { payload, param1, callback });
         // Inject the initialized chain into the payload if not already set
         if (!payload.chain) {
           payload.chain = chain;
         }
-        return callback ? sendRequestAsync(payload, param1, callback) : sendRequestSync(payload);
+        return callback ? sendRequestAsync(payload, param1, callback) : sendRequestSync(payload, param1);
       },
       sendAsync: (payload, param1, callback) => {
+        console.log('sendAsync: ', { payload, param1, callback });
         // Inject the initialized chain into the payload if not already set
         if (!payload.chain) {
           payload.chain = chain;
