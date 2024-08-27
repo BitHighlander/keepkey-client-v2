@@ -97,8 +97,8 @@
     let wallet = {
       network: 'mainnet',
       isKeepKey: true,
-      isMetaMask: false,
-      isUniswapWallet: false,
+      isMetaMask: true,
+      isUniswapWallet: true,
       isConnected: true,
       request: ({ method, params }, callback) => {
         if (callback) {
@@ -218,6 +218,7 @@
     });
 
     function announceProvider() {
+      console.log(tag, 'Announcing provider to window: ', announceEvent);
       window.dispatchEvent(announceEvent);
     }
     announceProvider();
