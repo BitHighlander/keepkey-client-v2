@@ -37,13 +37,30 @@ export const handleBitcoinRequest = async (
       console.log(tag, method + ' Returning', response);
       return [response];
     }
+    case 'request_balance': {
+      //get sum of all pubkeys configured
+      let balance = 0;
+      let pubkeys = await KEEPKEY_WALLET[Chain.Bitcoin].walletMethods.getPubkeys();
+      console.log(tag, 'pubkeys: ', pubkeys);
+
+      for (let i = 0; i < pubkeys.length; i++) {
+        let pubkey = pubkeys[i];
+        console.log(tag, 'pubkey: ', pubkey);
+        let response = await KEEPKEY_WALLET[Chain.Bitcoin].walletMethods.getBalance([{ pubkey }]);
+        console.log(tag, 'response: ', response);
+        console.log(tag, 'response value: ', response.getValue('number'));
+        balance += response.getValue('number');
+      }
+      console.log(tag, 'balance final: ', balance);
+      return [balance];
+    }
     case 'transfer': {
       //send tx
       console.log(tag, 'params[0]: ', params[0]);
       let assetString = 'BTC.BTC';
       await AssetValue.loadStaticAssets();
       console.log(tag, 'params[0].amount.amount: ', params[0].amount.amount);
-      let assetValue = await AssetValue.fromString(assetString, parseFloat(params[0].amount.amount));
+      let assetValue = await AssetValue.fromString(assetString, parseFloat(params[0].amount.amount) / 100000000);
       let sendPayload = {
         from: params[0].from,
         assetValue,
@@ -51,6 +68,8 @@ export const handleBitcoinRequest = async (
         recipient: params[0].recipient,
       };
       console.log(tag, 'sendPayload: ', sendPayload);
+      // @ts-ignore
+      console.log(tag, 'sendPayload: ', sendPayload.assetValue.getValue('string'));
       const txHash = await KEEPKEY_WALLET[Chain.Bitcoin].walletMethods.transfer(sendPayload);
       console.log(tag, 'txHash: ', txHash);
       return txHash;

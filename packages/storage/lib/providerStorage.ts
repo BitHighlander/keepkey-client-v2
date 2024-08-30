@@ -17,7 +17,7 @@ const storage = createStorage<ChainId>('chainId-storage-key', '1', {
   liveUpdate: true,
 });
 
-export const exampleChainIdStorage: ChainIdStorage = {
+export const chainIdStorage: ChainIdStorage = {
   ...storage,
   setChainId: async (newChainId: ChainId) => {
     await storage.set(() => newChainId);

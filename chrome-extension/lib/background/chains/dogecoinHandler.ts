@@ -36,6 +36,13 @@ export const handleDogecoinRequest = async (
       console.log(tag, method + ' Returning', response);
       return [response];
     }
+    case 'request_balance': {
+      //Unsigned TX
+      let response = await KEEPKEY_WALLET[Chain.Dogecoin].walletMethods.getBalance();
+      console.log(tag, 'response: ', response);
+      console.log(tag, method + ' Returning', response);
+      return [response];
+    }
     case 'transfer': {
       //send tx
       console.log(tag, 'params[0]: ', params[0]);

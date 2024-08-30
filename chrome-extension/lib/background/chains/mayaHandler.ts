@@ -31,7 +31,14 @@ export const handleMayaRequest = async (
   console.log(tag, 'params:', params);
   switch (method) {
     case 'request_accounts': {
-      let response = await KEEPKEY_WALLET[Chain.BitcoinCash].walletMethods.getAddress();
+      let response = await KEEPKEY_WALLET[Chain.Mayachain].walletMethods.getAddress();
+      console.log(tag, 'response: ', response);
+      console.log(tag, method + ' Returning', response);
+      return [response];
+    }
+    case 'request_balance': {
+      //Unsigned TX
+      let response = await KEEPKEY_WALLET[Chain.Mayachain].walletMethods.getBalance();
       console.log(tag, 'response: ', response);
       console.log(tag, method + ' Returning', response);
       return [response];

@@ -20,8 +20,8 @@
   "dependencies": {
     "@chrome-extension-boilerplate/shared": "workspace:*",
     "@chrome-extension-boilerplate/storage": "workspace:*",
-    "@coinmasters/types": "^4.7.41",
-    "@coinmasters/wallet-keepkey": "^13.0.59",
+    "@coinmasters/types": "^4.7.62",
+    "@coinmasters/wallet-keepkey": "^13.0.62",
     "@pioneer-platform/helpers": "^4.0.12",
     "@pioneer-platform/pioneer-coins": "^9.2.23",
     "@types/uuid": "^10.0.0",
