@@ -31,7 +31,8 @@ export const handleLitecoinRequest = async (
   console.log(tag, 'params:', params);
   switch (method) {
     case 'request_accounts': {
-      let response = await KEEPKEY_WALLET[Chain.Litecoin].walletMethods.getAddress();
+      //Unsigned TX
+      let response = await KEEPKEY_WALLET.swapKit.getAddress(Chain.Litecoin);
       console.log(tag, 'response: ', response);
       console.log(tag, method + ' Returning', response);
       return [response];
@@ -56,7 +57,7 @@ export const handleLitecoinRequest = async (
         recipient: params[0].recipient,
       };
       console.log(tag, 'sendPayload: ', sendPayload);
-      const txHash = await KEEPKEY_WALLET[Chain.Litecoin].walletMethods.transfer(sendPayload);
+      const txHash = await KEEPKEY_WALLET.swapKit.transfer(sendPayload);
       console.log(tag, 'txHash: ', txHash);
       return txHash;
     }

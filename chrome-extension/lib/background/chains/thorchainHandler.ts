@@ -39,9 +39,6 @@ export const handleThorchainRequest = async (
     }
     case 'request_balance': {
       //get sum of all pubkeys configured
-      console.log(tag, 'KEEPKEY_WALLET: ', KEEPKEY_WALLET);
-      console.log(tag, 'KEEPKEY_WALLET.swapKit: ', KEEPKEY_WALLET.swapKit);
-      console.log(tag, 'KEEPKEY_WALLET.swapKit: ', KEEPKEY_WALLET.balances);
       let balance = KEEPKEY_WALLET.balances.find((balance: any) => balance.caip === shortListSymbolToCaip['THOR']);
 
       //let pubkeys = await KEEPKEY_WALLET.swapKit.getBalance(Chain.Bitcoin);
