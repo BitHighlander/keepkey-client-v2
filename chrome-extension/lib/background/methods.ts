@@ -133,6 +133,7 @@ export const handleWalletRequest = async (
 ): Promise<any> => {
   const tag = ' | handleWalletRequest | ';
   try {
+    console.log(tag, 'id:', requestInfo.id);
     console.log(tag, 'chain:', chain);
     console.log(tag, 'requestInfo:', requestInfo);
     if (!chain) throw Error('Chain not provided!');

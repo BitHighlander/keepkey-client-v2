@@ -151,6 +151,12 @@ chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: a
   if (message.type === 'WALLET_REQUEST') {
     console.log(tag, 'Background script received WALLET_REQUEST:', message);
     const { method, params, requestInfo, chain } = message;
+    const { id, siteUrl } = requestInfo;
+    console.log(tag, 'id:', id);
+    //TODO verify siteUrl with whitelist
+    //if new site, popup to approve
+    //if simular to others warn possible phishing
+
     //@TODO spammy false requests?
     // if(!method) throw Error('invalid request: method is required');
     console.log(tag, 'chain:', chain);
@@ -162,15 +168,17 @@ chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: a
     if (method) {
       handleWalletRequest(requestInfo, chain, method, params, provider, KEEPKEY_WALLET, ADDRESS)
         .then(result => {
-          // console.log(tag, 'result:', result);
+          console.log(tag, 'RESPONSE: requestInfo.id:', requestInfo.id);
+          let id = requestInfo.id;
           const receivedResultString = JSON.stringify(result);
           const receivedResultLength = receivedResultString.length;
           console.log(tag, '(STEP 2) receivedResultString:', receivedResultString);
           console.log(tag, '(STEP 2) receivedResultLength:', receivedResultLength);
-          sendResponse(result);
+          console.log(tag, 'result:', result);
+          sendResponse({ result, id });
         })
         .catch(error => {
-          sendResponse({ error: error.message });
+          sendResponse({ error: error.message, id });
         });
     } else {
       console.log(tag, 'ignored request: ', message, sender);

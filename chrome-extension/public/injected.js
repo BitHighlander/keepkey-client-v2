@@ -15,6 +15,7 @@
     const tag = TAG + ' | walletRequest | ';
     try {
       const requestInfo = {
+        id: method + ':' + new Date().getTime(),
         method,
         params,
         chain,
@@ -35,13 +36,21 @@
 
       function handleMessage(event) {
         console.log(tag, 'event:', event);
+        console.log(tag, 'event.id:', event.id);
+
         console.log(tag, 'event.data.method:', event.data.method);
         console.log(tag, 'method:', method);
 
         if (event.data.result && event.data.method && method) {
           console.log(tag, 'Resolving response:', event.data.result);
           if (callback && typeof callback === 'function') {
-            callback(null, event.data.result); // Use callback to return the result
+            if (event.data.result.id && event.data.result.id == requestInfo.id) {
+              console.log('Winning! id lock valid: ', event.data.result.id, '==', requestInfo.id);
+              callback(null, event.data.result.result); // Use callback to return the result
+            } else if (event.data.result.id) {
+              //TODO queue?
+              console.error(tag, 'Ignoring id:', event.data.result.id, '!=', requestInfo.id);
+            }
           }
           window.removeEventListener('message', handleMessage);
         } else {
