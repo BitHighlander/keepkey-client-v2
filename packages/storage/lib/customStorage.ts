@@ -13,6 +13,17 @@ type ApiKeyStorage = BaseStorage<string> & {
   getApiKey: () => Promise<string | null>;
 };
 
+type PioneerStorage = BaseStorage<string> & {
+  savePioneerWss: (queryKey: string) => Promise<void>;
+  getPioneerWss: () => Promise<string | null>;
+  savePioneerSpec: (queryKey: string) => Promise<void>;
+  getPioneerSpec: () => Promise<string | null>;
+  saveQueryKey: (queryKey: string) => Promise<void>;
+  getQueryKey: () => Promise<string | null>;
+  saveUsername: (username: string) => Promise<void>;
+  getUsername: () => Promise<string | null>;
+};
+
 type EventStorage = BaseStorage<Event[]> & {
   addEvent: (event: Event) => Promise<boolean>;
   getEvents: () => Promise<Event[] | null>;
@@ -31,6 +42,62 @@ type AssetContextStorage = BaseStorage<AssetContext> & {
 };
 
 const TAG = ' | customStorage | ';
+
+// Create API Key Storage
+const createPioneerStorage = (): PioneerStorage => {
+  const queryKeyStorage = createStorage<string>('pioneer-query-key', '', {
+    storageType: StorageType.Local,
+    liveUpdate: true,
+  });
+
+  const usernameStorage = createStorage<string>('pioneer-username', '', {
+    storageType: StorageType.Local,
+    liveUpdate: true,
+  });
+
+  const specStorage = createStorage<string>('pioneer-spec', '', {
+    storageType: StorageType.Local,
+    liveUpdate: true,
+  });
+
+  const wssStorage = createStorage<string>('pioneer-wss', '', {
+    storageType: StorageType.Local,
+    liveUpdate: true,
+  });
+
+  return {
+    ...queryKeyStorage,
+    ...usernameStorage,
+    ...specStorage,
+    ...wssStorage,
+    savePioneerSpec: async (spec: string) => {
+      await specStorage.set(() => spec);
+    },
+    getPioneerSpec: async () => {
+      return await specStorage.get();
+    },
+    savePioneerWss: async (Wss: string) => {
+      await specStorage.set(() => Wss);
+    },
+    getPioneerWss: async () => {
+      return await specStorage.get();
+    },
+    saveQueryKey: async (queryKey: string) => {
+      await queryKeyStorage.set(() => queryKey);
+    },
+    getQueryKey: async () => {
+      return await queryKeyStorage.get();
+    },
+    saveUsername: async (username: string) => {
+      await usernameStorage.set(() => username);
+    },
+    getUsername: async () => {
+      return await usernameStorage.get();
+    },
+  };
+};
+
+export const pioneerKeyStorage = createPioneerStorage();
 
 // Create API Key Storage
 const createApiKeyStorage = (): ApiKeyStorage => {

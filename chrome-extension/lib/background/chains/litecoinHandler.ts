@@ -37,11 +37,10 @@ export const handleLitecoinRequest = async (
       return [response];
     }
     case 'request_balance': {
-      //Unsigned TX
-      let response = await KEEPKEY_WALLET[Chain.Litecoin].walletMethods.getBalance();
-      console.log(tag, 'response: ', response);
-      console.log(tag, method + ' Returning', response);
-      return [response];
+      //get sum of all pubkeys configured
+      let pubkeys = await KEEPKEY_WALLET.swapKit.getBalance(Chain.Litecoin);
+      console.log(tag, 'pubkeys: ', pubkeys);
+      return [pubkeys];
     }
     case 'transfer': {
       //send tx

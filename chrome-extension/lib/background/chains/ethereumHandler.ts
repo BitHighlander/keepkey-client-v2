@@ -2,6 +2,7 @@
     Ethereum Provider
 
  */
+import { Chain } from '@coinmasters/types';
 
 import { JsonRpcProvider } from 'ethers';
 // @ts-ignore
@@ -387,11 +388,12 @@ const signMessage = async (message: any, KEEPKEY_SDK: any) => {
   try {
     console.log('signMessage: ', message);
     console.log('KEEPKEY_SDK.ETH.walletMethods: ', KEEPKEY_SDK.ETH.walletMethods);
-    const address = KEEPKEY_SDK.ETH.wallet.address;
+    const address = await KEEPKEY_SDK.swapKit.getAddress(Chain.Bitcoin);
     const messageFormatted = `0x${Buffer.from(
       Uint8Array.from(typeof message === 'string' ? new TextEncoder().encode(message) : message),
     ).toString('hex')}`;
-    return KEEPKEY_SDK.eth.ethSign({ address, message: messageFormatted });
+    let wallet = await KEEPKEY_SDK.swapKit.getWallet(Chain.Ethereum);
+    return wallet.ethSign({ address, message: messageFormatted });
   } catch (e) {
     console.error(e);
     throw createProviderRpcError(4000, 'Error signing message', e);
@@ -405,7 +407,6 @@ const signTransaction = async (transaction: any, provider: JsonRpcProvider, KEEP
     console.log(tag, '**** KEEPKEY_WALLET: ', KEEPKEY_WALLET);
     console.log(tag, '**** KEEPKEY_WALLET: ', KEEPKEY_WALLET.ETH);
     console.log(tag, '**** KEEPKEY_WALLET: ', KEEPKEY_WALLET.ETH.keepkeySdk);
-    let KEEPKEY_SDK = KEEPKEY_WALLET.ETH.keepkeySdk;
 
     if (!transaction.from) throw createProviderRpcError(4000, 'Invalid transaction: missing from');
     if (!transaction.to) throw createProviderRpcError(4000, 'Invalid transaction: missing to');
@@ -448,8 +449,9 @@ const signTransaction = async (transaction: any, provider: JsonRpcProvider, KEEP
     };
 
     console.log(`${tag} Final input: `, input);
-    console.log(`${tag} KEEPKEY_SDK: `, KEEPKEY_SDK);
-    const output = await KEEPKEY_SDK.eth.ethSignTransaction(input);
+    console.log(`${tag} KEEPKEY_WALLET: `, KEEPKEY_WALLET);
+    let wallet = await KEEPKEY_WALLET.swapKit.getWallet(Chain.Ethereum);
+    const output = await wallet.ethSignTransaction(input);
     console.log(`${tag} Transaction output: `, output);
 
     return output.serialized;
@@ -473,7 +475,8 @@ const signTypedData = async (params: any, KEEPKEY_SDK: any, ADDRESS: string) => 
     };
     console.log(tag, '**** payload: ', payload);
 
-    const signedMessage = await KEEPKEY_SDK.eth.ethSignTypedData(payload);
+    let wallet = await KEEPKEY_SDK.swapKit.getWallet(Chain.Ethereum);
+    const signedMessage = await wallet.ethSignTypedData(payload);
     console.log(tag, '**** signedMessage: ', signedMessage);
     return signedMessage;
   } catch (e) {

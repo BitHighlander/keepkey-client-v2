@@ -2,9 +2,16 @@
     KeepKey Wallet
  */
 import { AssetValue } from '@pioneer-platform/helpers';
-import { WalletOption, ChainToNetworkId, getChainEnumValue } from '@coinmasters/types';
+import { WalletOption, availableChainsByWallet, ChainToNetworkId, getChainEnumValue } from '@coinmasters/types';
 import { getPaths } from '@pioneer-platform/pioneer-coins';
-import { keepKeyApiKeyStorage } from '@chrome-extension-boilerplate/storage'; // Re-import the storage
+import { keepKeyApiKeyStorage, pioneerKeyStorage } from '@chrome-extension-boilerplate/storage'; // Re-import the storage
+// @ts-ignore
+import { SDK } from '@coinmasters/pioneer-sdk';
+// @ts-ignore
+import DB from '@coinmasters/pioneer-db';
+const db = new DB({});
+import { v4 as uuidv4 } from 'uuid';
+
 const TAG = ' | KeepKey | ';
 interface KeepKeyWallet {
   type: string;
@@ -15,72 +22,12 @@ interface KeepKeyWallet {
   isConnected: boolean;
 }
 
-const syncWalletByChain = async (keepkey: any, chain: any, paths: any) => {
-  let tag = TAG + ' | syncWalletByChain | ';
-  if (!keepkey[chain]) throw Error('Missing chain! chain: ' + chain);
-  console.log('syncing chain: ', chain);
-  let balance: any = [];
-  const address = await keepkey[chain].walletMethods.getAddress();
-  console.log('address: ', address);
-  const pubkeys = await keepkey[chain].walletMethods?.getPubkeys();
-  console.log('pubkeys: ', pubkeys);
-  if (!address) {
-    console.error('Failed to get address for chain! chain: ' + chain);
+const connectKeepKey = async function () {
+  try {
+  } catch (e) {
+    console.error(e);
   }
-  if (pubkeys.length <= 0) {
-    console.error('Failed to get pubkeys for chain! chain: ' + chain);
-  }
-
-  // eslint-disable-next-line @typescript-eslint/prefer-for-of
-  for (let i = 0; i < pubkeys.length; i++) {
-    let pubkey = pubkeys[i];
-    //console.log(tag, 'pubkey: ', pubkey);
-    if (!pubkey || !pubkey.networks) continue;
-    // eslint-disable-next-line @typescript-eslint/prefer-for-of
-    for (let j = 0; j < pubkey.networks.length; j++) {
-      let networkId = pubkey.networks[j];
-      //console.log(tag, 'networkId: ', networkId);
-      if (networkId.includes('eip155') || pubkey.type === 'address') {
-        //console.log(tag, 'network includes eip155 or is marked address');
-        console.log(tag, 'address: ', address);
-        let balance = await keepkey[chain].walletMethods?.getBalance([{ address }]);
-        //console.log(tag, 'balance: ', balance);
-        balance.push(balance);
-      } else {
-        //console.log(tag, 'Scan Xpub or other public key type');
-        let pubkeyBalances: AssetValue[] = await keepkey[chain].walletMethods?.getBalance([{ pubkey }]);
-        //console.log(tag, 'pubkeyBalances: ', pubkeyBalances);
-        pubkeyBalances.forEach(pubkeyBalance => {
-          balance.push(pubkeyBalance);
-        });
-      }
-    }
-  }
-
-  return {
-    address,
-    pubkeys,
-    balance,
-    walletType: WalletOption.KEEPKEY,
-  };
 };
-
-interface AddChainParams {
-  info: any;
-  keepkeySdk: any;
-  chain: any;
-  walletMethods: any;
-  wallet: any;
-}
-
-function addChain(keepkey: any, { info, keepkeySdk, chain, walletMethods, wallet }: AddChainParams) {
-  keepkey[chain] = {
-    info,
-    keepkeySdk,
-    walletMethods,
-    wallet,
-  };
-}
 
 export const onStartKeepkey = async function () {
   let tag = TAG + ' | onStartKeepkey | ';
@@ -103,17 +50,16 @@ export const onStartKeepkey = async function () {
       'THOR',
     ];
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    const { keepkeyWallet } = await import('@coinmasters/wallet-keepkey');
+    await db.init({});
+    //console.log(tag, 'Database initialized');
+    let txs = await db.getAllTransactions();
+    console.log(tag, 'txs: ', txs);
 
-    const walletKeepKey: KeepKeyWallet = {
-      type: 'KEEPKEY',
-      icon: '',
-      chains,
-      wallet: keepkeyWallet,
-      status: 'offline',
-      isConnected: false,
-    };
+    let pubkeys = await db.getPubkeys({});
+    console.log(tag, 'pubkeys: ', pubkeys);
+
+    let balances = await db.getBalances({});
+    console.log(tag, 'balances: ', balances);
 
     const allByCaip = chains.map(chainStr => {
       const chain = getChainEnumValue(chainStr);
@@ -124,7 +70,6 @@ export const onStartKeepkey = async function () {
     });
     console.log(tag, 'allByCaip: ', allByCaip);
     const paths = getPaths(allByCaip);
-    const keepkey: any = {};
 
     //add paths to keepkey
     //add account 0 p2sh segwit
@@ -146,7 +91,7 @@ export const onStartKeepkey = async function () {
       blockchain: 'bitcoin',
       symbol: 'BTC',
       symbolSwapKit: 'BTC',
-      network: 'bip122:000000000019d6689c085ae165831e93',
+      networks: ['bip122:000000000019d6689c085ae165831e93'],
       script_type: 'p2wpkh', //bech32
       available_scripts_types: ['p2pkh', 'p2sh', 'p2wpkh', 'p2sh-p2wpkh'],
       type: 'zpub',
@@ -174,7 +119,7 @@ export const onStartKeepkey = async function () {
       blockchain: 'bitcoin',
       symbol: 'BTC',
       symbolSwapKit: 'BTC',
-      network: 'bip122:000000000019d6689c085ae165831e93',
+      networks: ['bip122:000000000019d6689c085ae165831e93'],
       script_type: 'p2wpkh', //bech32
       available_scripts_types: ['p2pkh', 'p2sh', 'p2wpkh', 'p2sh-p2wpkh'],
       type: 'zpub',
@@ -214,6 +159,9 @@ export const onStartKeepkey = async function () {
 
     paths.push({
       note: 'Bitcoin account 3 legacy',
+      blockchain: 'bitcoin',
+      symbol: 'BTC',
+      symbolSwapKit: 'BTC',
       networks: ['bip122:000000000019d6689c085ae165831e93'],
       script_type: 'p2pkh',
       available_scripts_types: ['p2pkh', 'p2sh', 'p2wpkh', 'p2sh-p2wpkh'],
@@ -224,42 +172,76 @@ export const onStartKeepkey = async function () {
       showDisplay: false, // Not supported by TrezorConnect or Ledger, but KeepKey should do it
     });
 
-    const keepkeyConfig = {
-      apiKey: (await keepKeyApiKeyStorage.getApiKey()) || '123',
-      pairingInfo: {
-        name: 'KeepKey-Client',
-        imageUrl: 'https://pioneers.dev/coins/keepkey.png',
-        basePath: 'http://localhost:1646/spec/swagger.json',
-        url: 'http://localhost:1646',
-      },
+    //get username from storage
+    let keepkeyApiKey = await keepKeyApiKeyStorage.getApiKey();
+    let username = await pioneerKeyStorage.getUsername();
+    let queryKey = await pioneerKeyStorage.getUsername();
+    let spec = (await pioneerKeyStorage.getPioneerSpec()) || 'https://pioneers.dev/spec/swagger.json';
+    let wss = (await pioneerKeyStorage.getPioneerWss()) || 'wss://pioneers.dev';
+    if (!queryKey) {
+      queryKey = `key:${uuidv4()}`;
+      pioneerKeyStorage.saveQueryKey(queryKey);
+    }
+    if (!username) {
+      username = `user:${uuidv4()}`;
+      username = username.substring(0, 13);
+      pioneerKeyStorage.saveUsername(username);
+    }
+    console.log(tag, 'keepkeyApiKey:', keepkeyApiKey);
+    console.log(tag, 'username:', username);
+    console.log(tag, 'queryKey:', queryKey);
+    console.log(tag, 'spec:', spec);
+    console.log(tag, 'wss:', wss);
+    //let spec = 'https://pioneers.dev/spec/swagger.json'
+
+    let config: any = {
+      username,
+      queryKey,
+      spec,
+      keepkeyApiKey,
+      wss,
+      paths,
+      blockchains: allByCaip,
+      // @ts-ignore
+      ethplorerApiKey: 'EK-xs8Hj-qG4HbLY-LoAu7',
+      // @ts-ignore
+      covalentApiKey: 'cqt_rQ6333MVWCVJFVX3DbCCGMVqRH4q',
+      // @ts-ignore
+      utxoApiKey: 'B_s9XK926uwmQSGTDEcZB3vSAmt5t2',
+      // @ts-ignore
+      walletConnectProjectId: '18224df5f72924a5f6b3569fbd56ae16',
     };
 
-    const covalentApiKey = 'cqt_rQ6333MVWCVJFVX3DbCCGMVqRH4q';
-    const ethplorerApiKey = 'EK-xs8Hj-qG4HbLY-LoAu7';
-    const utxoApiKey = 'B_s9XK926uwmQSGTDEcZB3vSAmt5t2';
-    const input = {
-      apis: {},
-      rpcUrls: {},
-      addChain: (params: AddChainParams) => addChain(keepkey, params),
-      config: { keepkeyConfig, covalentApiKey, ethplorerApiKey, utxoApiKey },
-    };
+    let app = new SDK(spec, config);
 
-    // Step 1: Invoke the outer function with the input object
-    const connectFunction = walletKeepKey.wallet.connect(input);
-
-    // Step 2: Invoke the inner function with chains and paths
-    const kkApikey = await connectFunction(chains, paths);
-    console.log(tag, 'kkApikey: ', kkApikey);
-    await keepKeyApiKeyStorage.saveApiKey(kkApikey.keepkeyApiKey); // Save the API key using custom storage
-
-    // get balances
-    for (let i = 0; i < chains.length; i++) {
-      const chain = chains[i];
-      const walletData: any = await syncWalletByChain(keepkey, chain);
-      console.log(tag, 'walletData: ', walletData);
+    if (app.keepkeyApiKey !== keepkeyApiKey) {
+      //console.log('SAVING API KEY. ');
+      keepKeyApiKeyStorage.saveApiKey(app.keepkeyApiKey);
     }
 
-    return keepkey;
+    const walletsVerbose: any = [];
+    const { keepkeyWallet } = await import('@coinmasters/wallet-keepkey');
+    const walletKeepKey = {
+      type: WalletOption.KEEPKEY,
+      icon: 'https://pioneers.dev/coins/keepkey.png',
+      chains: availableChainsByWallet[WalletOption.KEEPKEY],
+      wallet: keepkeyWallet,
+      status: 'offline',
+      isConnected: false,
+    };
+    walletsVerbose.push(walletKeepKey);
+    let resultInit = await app.init(walletsVerbose, {});
+    console.log(tag, 'resultInit:', resultInit);
+    console.log(tag, 'wallets: ', app.wallets.length);
+
+    let pairObject = {
+      type: WalletOption.KEEPKEY,
+      blockchains: allByCaip,
+    };
+    resultInit = await app.pairWallet(pairObject);
+    console.log(tag, 'resultInit: ', resultInit);
+
+    return app;
   } catch (e) {
     console.error(e);
     throw e;

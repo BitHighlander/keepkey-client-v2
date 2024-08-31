@@ -3,6 +3,8 @@ import { JsonRpcProvider } from 'ethers';
 import { Chain } from '@coinmasters/types';
 import { EIP155_CHAINS } from '../chains';
 import { AssetValue } from '@pioneer-platform/helpers';
+// @ts-ignore
+import { ChainToNetworkId, shortListSymbolToCaip } from '@pioneer-platform/pioneer-caip';
 
 interface ProviderRpcError extends Error {
   code: number;
@@ -32,26 +34,20 @@ export const handleBitcoinRequest = async (
   switch (method) {
     case 'request_accounts': {
       //Unsigned TX
-      let response = await KEEPKEY_WALLET[Chain.Bitcoin].walletMethods.getAddress();
+      let response = await KEEPKEY_WALLET.swapKit.getAddress(Chain.Bitcoin);
       console.log(tag, 'response: ', response);
       console.log(tag, method + ' Returning', response);
       return [response];
     }
     case 'request_balance': {
       //get sum of all pubkeys configured
-      let balance = 0;
-      let pubkeys = await KEEPKEY_WALLET[Chain.Bitcoin].walletMethods.getPubkeys();
-      console.log(tag, 'pubkeys: ', pubkeys);
+      console.log(tag, 'KEEPKEY_WALLET: ', KEEPKEY_WALLET);
+      console.log(tag, 'KEEPKEY_WALLET.swapKit: ', KEEPKEY_WALLET.swapKit);
+      console.log(tag, 'KEEPKEY_WALLET.swapKit: ', KEEPKEY_WALLET.balances);
+      let balance = KEEPKEY_WALLET.balances.find((balance: any) => balance.caip === shortListSymbolToCaip['BTC']);
 
-      for (let i = 0; i < pubkeys.length; i++) {
-        let pubkey = pubkeys[i];
-        console.log(tag, 'pubkey: ', pubkey);
-        let response = await KEEPKEY_WALLET[Chain.Bitcoin].walletMethods.getBalance([{ pubkey }]);
-        console.log(tag, 'response: ', response);
-        console.log(tag, 'response value: ', response.getValue('number'));
-        balance += response.getValue('number');
-      }
-      console.log(tag, 'balance final: ', balance);
+      //let pubkeys = await KEEPKEY_WALLET.swapKit.getBalance(Chain.Bitcoin);
+      console.log(tag, 'balance: ', balance);
       return [balance];
     }
     case 'transfer': {
@@ -70,7 +66,7 @@ export const handleBitcoinRequest = async (
       console.log(tag, 'sendPayload: ', sendPayload);
       // @ts-ignore
       console.log(tag, 'sendPayload: ', sendPayload.assetValue.getValue('string'));
-      const txHash = await KEEPKEY_WALLET[Chain.Bitcoin].walletMethods.transfer(sendPayload);
+      const txHash = await KEEPKEY_WALLET.swapKit.transfer(sendPayload);
       console.log(tag, 'txHash: ', txHash);
       return txHash;
     }

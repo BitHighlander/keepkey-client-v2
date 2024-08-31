@@ -4,6 +4,7 @@ import { onStartKeepkey } from './keepkey';
 import { handleWalletRequest } from './methods';
 import { listenForApproval } from './approvals';
 import { JsonRpcProvider } from 'ethers';
+import { Chain } from '@coinmasters/types';
 
 const TAG = ' | background/index.js | ';
 console.log('background script loaded');
@@ -110,9 +111,9 @@ const onStart = async function () {
   try {
     console.log(tag, 'Starting...');
     // Connecting to KeepKey
-    const keepkey = await onStartKeepkey();
-    console.log(tag, 'keepkey: ', keepkey);
-    const address = keepkey.ETH.wallet.address;
+    const app = await onStartKeepkey();
+    console.log(tag, 'app: ', app);
+    const address = await app.swapKit.getAddress(Chain.Ethereum);
     if (address) {
       KEEPKEY_STATE = 2;
       updateIcon();
@@ -121,11 +122,15 @@ const onStart = async function () {
 
     // Set addresses
     ADDRESS = address;
-    console.log(tag, '**** keepkey: ', keepkey);
-    KEEPKEY_WALLET = keepkey;
+    console.log(tag, '**** keepkey: ', app);
+    KEEPKEY_WALLET = app;
     console.log(tag, 'KEEPKEY_WALLET: ', KEEPKEY_WALLET);
     // Start listening for approval events
     listenForApproval(KEEPKEY_WALLET, ADDRESS);
+
+    //sync
+    await app.getPubkeys();
+    await app.getBalances();
   } catch (e) {
     KEEPKEY_STATE = 4; // errored
     updateIcon();

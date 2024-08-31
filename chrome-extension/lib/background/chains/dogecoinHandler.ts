@@ -3,6 +3,8 @@ import { JsonRpcProvider } from 'ethers';
 import { Chain } from '@coinmasters/types';
 import { AssetValue } from '@pioneer-platform/helpers';
 import { EIP155_CHAINS } from '../chains';
+// @ts-ignore
+import { ChainToNetworkId, shortListSymbolToCaip } from '@pioneer-platform/pioneer-caip';
 
 interface ProviderRpcError extends Error {
   code: number;
@@ -31,17 +33,19 @@ export const handleDogecoinRequest = async (
   console.log(tag, 'params:', params);
   switch (method) {
     case 'request_accounts': {
-      let response = await KEEPKEY_WALLET[Chain.Dogecoin].walletMethods.getAddress();
+      //Unsigned TX
+      let response = await KEEPKEY_WALLET.swapKit.getAddress(Chain.Dogecoin);
       console.log(tag, 'response: ', response);
       console.log(tag, method + ' Returning', response);
       return [response];
     }
     case 'request_balance': {
-      //Unsigned TX
-      let response = await KEEPKEY_WALLET[Chain.Dogecoin].walletMethods.getBalance();
-      console.log(tag, 'response: ', response);
-      console.log(tag, method + ' Returning', response);
-      return [response];
+      //get sum of all pubkeys configured
+      let balance = KEEPKEY_WALLET.balances.find((balance: any) => balance.caip === shortListSymbolToCaip['DOGE']);
+
+      //let pubkeys = await KEEPKEY_WALLET.swapKit.getBalance(Chain.Bitcoin);
+      console.log(tag, 'balance: ', balance);
+      return [balance];
     }
     case 'transfer': {
       //send tx
@@ -57,7 +61,7 @@ export const handleDogecoinRequest = async (
         recipient: params[0].recipient,
       };
       console.log(tag, 'sendPayload: ', sendPayload);
-      const txHash = await KEEPKEY_WALLET[Chain.Dogecoin].walletMethods.transfer(sendPayload);
+      const txHash = await KEEPKEY_WALLET.swapKit.transfer(sendPayload);
       console.log(tag, 'txHash: ', txHash);
       return txHash;
     }

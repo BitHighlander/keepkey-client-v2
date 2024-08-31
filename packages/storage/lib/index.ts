@@ -1,6 +1,7 @@
 import { createStorage, StorageType, type BaseStorage, SessionAccessLevel } from './base';
 import {
   keepKeyApiKeyStorage,
+  pioneerKeyStorage,
   requestStorage,
   approvalStorage,
   completedStorage,
@@ -10,6 +11,7 @@ import { chainIdStorage } from './providerStorage';
 
 export {
   chainIdStorage,
+  pioneerKeyStorage,
   keepKeyApiKeyStorage,
   requestStorage,
   approvalStorage,
