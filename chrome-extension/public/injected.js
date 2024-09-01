@@ -2,6 +2,7 @@
   const TAG = ' | InjectedScript | ';
   const VERSION = '1.0.4';
   console.log('**** KeepKey Injection script ****: ', VERSION);
+
   const SITE_URL = window.location.href;
   const SOURCE_INFO = {
     siteUrl: SITE_URL,
@@ -10,6 +11,20 @@
     injectedTime: new Date().toISOString(),
   };
   console.log('SOURCE_INFO: ', SOURCE_INFO);
+
+  const messageQueue = [];
+
+  function processQueue(requestInfo, callback) {
+    for (let i = 0; i < messageQueue.length; i++) {
+      const queuedMessage = messageQueue[i];
+      if (queuedMessage.id === requestInfo.id) {
+        callback(null, queuedMessage.result);
+        messageQueue.splice(i, 1); // Remove the processed message from the queue
+        return true;
+      }
+    }
+    return false;
+  }
 
   function walletRequest(method, params = [], chain, callback) {
     const tag = TAG + ' | walletRequest | ';
@@ -41,24 +56,24 @@
         console.log(tag, 'event.data.method:', event.data.method);
         console.log(tag, 'method:', method);
 
-        if (event.data.result && event.data.method && method) {
-          console.log(tag, 'Resolving response:', event.data.result);
-          if (callback && typeof callback === 'function') {
-            if (event.data.result.id && event.data.result.id == requestInfo.id) {
-              console.log('Winning! id lock valid: ', event.data.result.id, '==', requestInfo.id);
-              callback(null, event.data.result.result); // Use callback to return the result
-            } else if (event.data.result.id) {
-              //TODO queue?
-              console.error(tag, 'Ignoring id:', event.data.result.id, '!=', requestInfo.id);
-            }
+        if (event.data.result && event.data.result.id) {
+          if (event.data.result.id === requestInfo.id) {
+            console.log(tag, 'Resolving response:', event.data.result);
+            callback(null, event.data.result.result);
+            window.removeEventListener('message', handleMessage);
+          } else {
+            console.error(tag, 'Mismatched id:', event.data.result.id, '!=', requestInfo.id);
+            messageQueue.push(event.data.result); // Add to queue
           }
-          window.removeEventListener('message', handleMessage);
         } else {
-          console.log(tag, 'Ignoring message:', event.data);
+          console.log(tag, 'Ignoring irrelevant message:', event.data);
         }
       }
 
       window.addEventListener('message', handleMessage);
+
+      // Recheck the queue for any pending matches
+      processQueue(requestInfo, callback);
     } catch (error) {
       console.error(tag, `Error in ${TAG}:`, error);
       callback(error); // Use callback to return the error
