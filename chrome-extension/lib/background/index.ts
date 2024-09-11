@@ -40,7 +40,7 @@ const EIP155_CHAINS = {
     name: 'Ethereum',
     logo: '/chain-logos/eip155-1.png',
     rgb: '99, 125, 234',
-    rpc: 'https://eth.llamarpc.com',
+    rpc: 'https://1rpc.io/eth',
     namespace: 'eip155',
   },
   'eip155:43114': {

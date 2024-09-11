@@ -18,16 +18,6 @@ import { EIP155_CHAINS } from '../chains';
 const TAG = ' | ethereumHandler | ';
 const DOMAIN_WHITE_LIST = [];
 
-// const CURRENT_PROVIDER: any = {
-//   blockExplorerUrls: ['https://etherscan.io'],
-//   caip: 'eip155:1/slip44:60',
-//   chainId: '0x1',
-//   name: 'Ethereum',
-//   providerUrl: 'https://eth.llamarpc.com',
-//   provider: new JsonRpcProvider('https://eth.llamarpc.com'),
-//   fallbacks: [],
-// };
-
 interface ChainInfo {
   chainId: string;
   name: string;
@@ -144,6 +134,8 @@ export const handleEthereumRequest = async (
       return convertHexToDecimalChainId(netVersion).toString();
     }
     case 'eth_getBlockByNumber': {
+      console.log('params:', params);
+      console.log('params:', params[0]);
       const blockByNumber = await CURRENT_PROVIDER.provider.getBlock(params[0]);
       console.log(tag, 'Returning eth_getBlockByNumber:', blockByNumber);
       return blockByNumber;
@@ -172,6 +164,9 @@ export const handleEthereumRequest = async (
       console.log(tag, 'Calling eth_call with:', params);
       const [callParams, blockTag, stateOverride] = params;
       console.log(tag, 'CURRENT_PROVIDER:', CURRENT_PROVIDER);
+      console.log(tag, 'callParams:', callParams);
+      console.log(tag, 'blockTag:', blockTag);
+      console.log(tag, 'stateOverride:', stateOverride);
       // Ensure callParams and blockTag are properly passed to the provider.call method
       const callResult = await CURRENT_PROVIDER.provider.call(callParams, blockTag, stateOverride);
       console.log(tag, 'callResult:', callResult);
@@ -347,17 +342,6 @@ const processApprovedEvent = async (
   try {
     console.log(TAG, 'processApprovedEvent method:', method);
     console.log(TAG, 'processApprovedEvent params:', params);
-    // const EIP155_CHAINS = {
-    //   'eip155:1': {
-    //     chainId: 1,
-    //     name: 'Ethereum',
-    //     logo: '/chain-logos/eip155-1.png',
-    //     rgb: '99, 125, 234',
-    //     rpc: 'https://eth.llamarpc.com',
-    //     namespace: 'eip155',
-    //   },
-    // };
-    // // const provider = new JsonRpcProvider(EIP155_CHAINS['eip155:1'].rpc);
 
     let result;
     switch (method) {
@@ -405,8 +389,10 @@ const signTransaction = async (transaction: any, provider: JsonRpcProvider, KEEP
   try {
     console.log(tag, '**** transaction: ', transaction);
     console.log(tag, '**** KEEPKEY_WALLET: ', KEEPKEY_WALLET);
-    console.log(tag, '**** KEEPKEY_WALLET: ', KEEPKEY_WALLET.ETH);
-    console.log(tag, '**** KEEPKEY_WALLET: ', KEEPKEY_WALLET.ETH.keepkeySdk);
+    // console.log(tag, '**** KEEPKEY_WALLET: ', KEEPKEY_WALLET.wallets);
+    // console.log(tag, '**** KEEPKEY_WALLET: ', KEEPKEY_WALLET.wallets[0]);
+    // console.log(tag, '**** KEEPKEY_WALLET: ', KEEPKEY_WALLET.ETH);
+    // console.log(tag, '**** KEEPKEY_WALLET: ', KEEPKEY_WALLET.ETH.keepkeySdk);
 
     if (!transaction.from) throw createProviderRpcError(4000, 'Invalid transaction: missing from');
     if (!transaction.to) throw createProviderRpcError(4000, 'Invalid transaction: missing to');
@@ -521,7 +507,7 @@ const sendTransaction = async (
     return result;
 
     //nerf
-    // return '0x60b4fbee93d0b884186948a7428841922a9984fe92ecba46a1550a87b7a60715';
+    //return '0x60b4NERF';
   } catch (e) {
     console.error(e);
     throw createProviderRpcError(4000, 'Error sending transaction', e);

@@ -105,7 +105,7 @@ const requireApproval = async function (requestInfo: any, chain: any, method: st
     } else {
       throw new Error('Event not saved');
     }
-    openPopup();
+    // openPopup();
   } catch (e) {
     console.error(tag, e);
   }
@@ -115,7 +115,7 @@ const requireUnlock = async function () {
   const tag = TAG + ' | requireUnlock | ';
   try {
     console.log(tag, 'requireUnlock for domain');
-    openPopup();
+    // openPopup();
   } catch (e) {
     console.error(e);
     isPopupOpen = false;

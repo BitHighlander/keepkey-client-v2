@@ -4,7 +4,7 @@ export const EIP155_CHAINS: any = {
     name: 'Ethereum',
     logo: '/chain-logos/eip155-1.png',
     rgb: '99, 125, 234',
-    rpc: 'https://eth.llamarpc.com',
+    rpc: 'https://ethereum-rpc.publicnode.com\t',
     namespace: 'eip155',
     caip: 'eip155:1/slip44:60',
   },

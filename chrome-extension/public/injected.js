@@ -243,7 +243,9 @@
 
     function announceProvider() {
       console.log(tag, 'Announcing provider to window: ', announceEvent);
-      window.dispatchEvent(announceEvent);
+      if (announceEvent && announceEvent.detail && announceEvent.detail.info) {
+        window.dispatchEvent(announceEvent);
+      }
     }
     announceProvider();
   }
