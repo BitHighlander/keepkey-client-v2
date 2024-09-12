@@ -1,221 +1,128 @@
 (function () {
   const TAG = ' | InjectedScript | ';
-  const VERSION = '1.0.4';
-  console.log('**** KeepKey Injection script ****: ', VERSION);
+  const VERSION = '1.0.5';
+  console.log('**** KeepKey Injection script ****:', VERSION);
 
-  const SITE_URL = window.location.href;
+  // Prevent multiple injections
+  if (window.keepkeyInjected) {
+    console.log(TAG, 'KeepKey is already injected.');
+    return;
+  }
+  window.keepkeyInjected = true;
+
   const SOURCE_INFO = {
-    siteUrl: SITE_URL,
+    siteUrl: window.location.href,
     scriptSource: 'KeepKey Extension',
     version: VERSION,
     injectedTime: new Date().toISOString(),
   };
-  console.log('SOURCE_INFO: ', SOURCE_INFO);
+  console.log('SOURCE_INFO:', SOURCE_INFO);
 
-  const messageQueue = [];
+  let messageId = 0;
+  const callbacks = {};
 
-  function processQueue(requestInfo, callback) {
-    for (let i = 0; i < messageQueue.length; i++) {
-      const queuedMessage = messageQueue[i];
-      if (queuedMessage.id === requestInfo.id) {
-        callback(null, queuedMessage.result);
-        messageQueue.splice(i, 1); // Remove the processed message from the queue
-        return true;
-      }
-    }
-    return false;
-  }
-
-  function walletRequest(method, params = [], chain, callback) {
+  function walletRequest(method, params = [], chain) {
     const tag = TAG + ' | walletRequest | ';
-    try {
-      const requestInfo = {
-        id: method + ':' + new Date().getTime(),
-        method,
-        params,
-        chain,
-        siteUrl: SOURCE_INFO.siteUrl,
-        scriptSource: SOURCE_INFO.scriptSource,
-        version: SOURCE_INFO.version,
-        requestTime: new Date().toISOString(),
-        referrer: document.referrer,
-        href: window.location.href,
-        userAgent: navigator.userAgent,
-        platform: navigator.platform,
-        language: navigator.language,
-      };
-      console.log(tag, 'method:', method);
-      console.log(tag, 'params:', params);
-      console.log(tag, 'chain:', chain);
-      window.postMessage({ type: 'WALLET_REQUEST', method, params, chain, requestInfo, tag: TAG }, '*');
+    return new Promise((resolve, reject) => {
+      try {
+        const requestId = ++messageId;
+        const requestInfo = {
+          id: requestId,
+          method,
+          params,
+          chain,
+          siteUrl: SOURCE_INFO.siteUrl,
+          scriptSource: SOURCE_INFO.scriptSource,
+          version: SOURCE_INFO.version,
+          requestTime: new Date().toISOString(),
+        };
 
-      function handleMessage(event) {
-        console.log(tag, 'event:', event);
-        console.log(tag, 'event.id:', event.id);
+        callbacks[requestId] = { resolve, reject };
 
-        console.log(tag, 'event.data.method:', event.data.method);
-        console.log(tag, 'method:', method);
-
-        if (event.data.result && event.data.result.id) {
-          if (event.data.result.id === requestInfo.id) {
-            console.log(tag, 'Resolving response:', event.data.result);
-            callback(null, event.data.result.result);
-            window.removeEventListener('message', handleMessage);
-          } else {
-            console.error(tag, 'Mismatched id:', event.data.result.id, '!=', requestInfo.id);
-            messageQueue.push(event.data.result); // Add to queue
-          }
-        } else {
-          console.log(tag, 'Ignoring irrelevant message:', event.data);
-        }
+        window.postMessage(
+          {
+            source: 'keepkey-injected',
+            type: 'WALLET_REQUEST',
+            requestId,
+            requestInfo,
+          },
+          '*',
+        );
+      } catch (error) {
+        console.error(tag, 'Error in walletRequest:', error);
+        reject(error);
       }
+    });
+  }
 
-      window.addEventListener('message', handleMessage);
-
-      // Recheck the queue for any pending matches
-      processQueue(requestInfo, callback);
-    } catch (error) {
-      console.error(tag, `Error in ${TAG}:`, error);
-      callback(error); // Use callback to return the error
+  // Listen for responses from the content script
+  window.addEventListener('message', event => {
+    const tag = TAG + ' | window.message | ';
+    if (event.source !== window) return;
+    if (event.data && event.data.source === 'keepkey-content' && event.data.type === 'WALLET_RESPONSE') {
+      const { requestId, result, error } = event.data;
+      const callback = callbacks[requestId];
+      if (callback) {
+        if (error) {
+          callback.reject(new Error(error));
+        } else {
+          callback.resolve(result);
+        }
+        delete callbacks[requestId];
+      }
     }
-  }
-
-  function sendRequestAsync(payload, param1, callback) {
-    const tag = TAG + ' | sendRequestAsync | ';
-    console.log(tag, 'payload:', payload);
-    console.log(tag, 'param1:', param1);
-    console.log(tag, 'callback:', callback);
-
-    //if !payload.chain use chain state
-
-    if (typeof callback === 'function') {
-      walletRequest(payload.method, payload.params, payload.chain).then(
-        result => callback(null, { id: payload.id, jsonrpc: '2.0', result }),
-        error => callback(error),
-      );
-    } else {
-      console.error(tag, 'Callback is not a function:', callback);
-    }
-  }
-
-  function sendRequestSync(payload, param1) {
-    const tag = TAG + ' | sendRequestSync | ';
-    console.log(tag, 'wallet.sendSync called with:', payload);
-    console.log(tag, 'wallet.sendSync called with:', payload.params);
-    console.log(tag, 'wallet.sendSync called with param1:', param1);
-    let params = payload.params || param1;
-    let method = payload.method || payload;
-    let chain = payload.chain || 'ethereum';
-    console.log(tag, 'selected payload:', payload);
-    console.log(tag, 'selected params:', params);
-    console.log(tag, 'selected params:', chain);
-    return {
-      id: payload.id,
-      jsonrpc: '2.0',
-      result: walletRequest(method, params, chain),
-    };
-  }
+  });
 
   function createWalletObject(chain) {
-    console.log('payload:', chain);
-    let wallet = {
-      network: 'mainnet',
+    console.log(TAG, 'Creating wallet object for chain:', chain);
+    const wallet = {
       isKeepKey: true,
       isMetaMask: true,
-      isUniswapWallet: true,
       isConnected: true,
-      request: ({ method, params }, callback) => {
-        if (callback) {
-          // If a callback is provided, use it
-          walletRequest(method, params, chain, (error, result) => {
-            if (error) {
-              callback(error);
-            } else {
-              console.log('createWalletObject: result: ', result);
-              callback(null, result);
-            }
-          });
+      request: args => {
+        const { method, params } = args;
+        return walletRequest(method, params, chain);
+      },
+      send: (payload, callback) => {
+        console.log(TAG, 'send:', payload);
+        if (typeof callback === 'function') {
+          walletRequest(payload.method, payload.params, chain)
+            .then(result => callback(null, { id: payload.id, jsonrpc: '2.0', result }))
+            .catch(error => callback(error, null));
         } else {
-          // If no callback is provided, return a promise
-          return new Promise((resolve, reject) => {
-            walletRequest(method, params, chain, (error, result) => {
-              if (error) {
-                reject(error);
-              } else {
-                console.log('createWalletObject: result: ', result);
-                resolve(result);
-              }
-            });
-          });
+          // Return a promise
+          return walletRequest(payload.method, payload.params, chain).then(result => ({
+            id: payload.id,
+            jsonrpc: '2.0',
+            result,
+          }));
         }
       },
-      send: (payload, param1, callback) => {
-        console.log('send: ', { payload, param1, callback });
-        // Inject the initialized chain into the payload if not already set
-        if (!payload.chain) {
-          payload.chain = chain;
-        }
-        return callback ? sendRequestAsync(payload, param1, callback) : sendRequestSync(payload, param1);
+      sendAsync: (payload, callback) => {
+        console.log(TAG, 'sendAsync:', payload);
+        walletRequest(payload.method, payload.params, chain)
+          .then(result => callback(null, { id: payload.id, jsonrpc: '2.0', result }))
+          .catch(error => callback(error, null));
       },
-      sendAsync: (payload, param1, callback) => {
-        console.log('sendAsync: ', { payload, param1, callback });
-        // Inject the initialized chain into the payload if not already set
-        if (!payload.chain) {
-          payload.chain = chain;
-        }
-        return sendRequestAsync(payload, param1, callback);
+      on: (event, handler) => {
+        // Implement event handling as needed
+        console.log(TAG, 'Event listener added for event:', event);
       },
-      on: (event, handler) => window.addEventListener(event, handler),
-      removeListener: (event, handler) => window.removeEventListener(event, handler),
-      removeAllListeners: () => {
-        ['message', 'click', 'keydown'].forEach(event => window.removeEventListener(event, () => {}));
+      removeListener: (event, handler) => {
+        // Implement event removal as needed
+        console.log(TAG, 'Event listener removed for event:', event);
       },
     };
-    if (chain == 'ethereum') {
+
+    if (chain === 'ethereum') {
       wallet.chainId = '0x1';
       wallet.networkVersion = '1';
-      wallet.isMetaMask = true;
-    }
-    if (chain == 'thorchain') {
-      wallet.chainId = 'Thorchain_thorchain';
     }
 
     return wallet;
   }
 
-  function mountWallet() {
-    const tag = TAG + ' | window.wallet | ';
-
-    // Create uniform wallet objects for each chain
-    const ethereum = createWalletObject('ethereum');
-    const xfi = {
-      binance: createWalletObject('binance'),
-      bitcoin: createWalletObject('bitcoin'),
-      bitcoincash: createWalletObject('bitcoincash'),
-      dogecoin: createWalletObject('dogecoin'),
-      dash: createWalletObject('dash'),
-      ethereum: createWalletObject('ethereum'),
-      keplr: createWalletObject('keplr'),
-      litecoin: createWalletObject('litecoin'),
-      thorchain: createWalletObject('thorchain'),
-      mayachain: createWalletObject('mayachain'),
-      solana: createWalletObject('solana'),
-    };
-
-    const handler = {
-      get: function (target, prop, receiver) {
-        console.log(tag, `Proxy get handler: ${prop}`);
-        return Reflect.get(target, prop, receiver);
-      },
-      set: function (target, prop, value) {
-        console.log(tag, `Proxy set handler: ${prop} = ${value}`);
-        return Reflect.set(target, prop, value);
-      },
-    };
-
-    const proxyEthereum = new Proxy(ethereum, handler);
-    const proxyXfi = new Proxy(xfi, handler);
-
+  function announceProvider(ethereumProvider) {
     const info = {
       uuid: '350670db-19fa-4704-a166-e52e178b59d4',
       name: 'KeepKey Client',
@@ -223,31 +130,39 @@
       rdns: 'com.keepkey',
     };
 
+    const announceEvent = new CustomEvent('eip6963:announceProvider', {
+      detail: { info, provider: ethereumProvider },
+    });
+
+    console.log(TAG, 'Dispatching provider event with correct detail:', announceEvent);
+    window.dispatchEvent(announceEvent);
+  }
+
+  function mountWallet() {
+    const ethereum = createWalletObject('ethereum');
+    const xfi = {
+      binance: createWalletObject('binance'),
+      bitcoin: createWalletObject('bitcoin'),
+      // Add other chains as needed
+    };
+
+    // Mount the providers on the window object
     Object.defineProperty(window, 'ethereum', {
-      value: proxyEthereum,
+      value: ethereum,
       writable: false,
       configurable: true,
     });
 
     Object.defineProperty(window, 'xfi', {
-      value: proxyXfi,
+      value: xfi,
       writable: false,
       configurable: true,
     });
 
-    console.log(tag, 'window.ethereum and window.xfi have been mounted');
+    console.log(TAG, 'window.ethereum and window.xfi have been mounted');
 
-    const announceEvent = new CustomEvent('eip6963:announceProvider', {
-      detail: Object.freeze({ info, provider: proxyEthereum }),
-    });
-
-    function announceProvider() {
-      console.log(tag, 'Announcing provider to window: ', announceEvent);
-      if (announceEvent && announceEvent.detail && announceEvent.detail.info) {
-        window.dispatchEvent(announceEvent);
-      }
-    }
-    announceProvider();
+    // Announce the provider
+    announceProvider(ethereum);
   }
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') {

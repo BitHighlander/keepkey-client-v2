@@ -1,3 +1,4 @@
+// @ts-ignore
 const TAG = ' | content | ';
 // @ts-ignore
 console.log('content script loaded');
@@ -15,12 +16,11 @@ window.addEventListener('message', event => {
   });
 });
 
-// Inject the provider script early in the document lifecycle
-const injectProviderScript = () => {
-  const container = document.head || document.documentElement;
-  const script = document.createElement('script');
-  script.src = chrome.runtime.getURL('injected.js');
-  container.insertBefore(script, container.children[0]);
-  script.onload = () => script.remove();
+// content-script.js
+const script = document.createElement('script');
+script.src = chrome.runtime.getURL('injected.js'); // Adjust the path as necessary
+script.onload = function () {
+  // @ts-ignore
+  this.remove();
 };
-injectProviderScript();
+(document.head || document.documentElement).appendChild(script);

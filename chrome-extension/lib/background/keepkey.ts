@@ -173,7 +173,7 @@ export const onStartKeepkey = async function () {
     });
 
     //get username from storage
-    let keepkeyApiKey = await keepKeyApiKeyStorage.getApiKey();
+    let keepkeyApiKey = (await keepKeyApiKeyStorage.getApiKey()) || 'key:123';
     let username = await pioneerKeyStorage.getUsername();
     let queryKey = await pioneerKeyStorage.getUsername();
     let spec = (await pioneerKeyStorage.getPioneerSpec()) || 'https://pioneers.dev/spec/swagger.json';
@@ -195,6 +195,8 @@ export const onStartKeepkey = async function () {
     //let spec = 'https://pioneers.dev/spec/swagger.json'
 
     let config: any = {
+      appName: 'KeepKey Client',
+      appIcon: 'https://pioneers.dev/coins/keepkey.png',
       username,
       queryKey,
       spec,
@@ -213,11 +215,6 @@ export const onStartKeepkey = async function () {
     };
 
     let app = new SDK(spec, config);
-
-    if (app.keepkeyApiKey !== keepkeyApiKey) {
-      //console.log('SAVING API KEY. ');
-      keepKeyApiKeyStorage.saveApiKey(app.keepkeyApiKey);
-    }
 
     const walletsVerbose: any = [];
     const { keepkeyWallet } = await import('@coinmasters/wallet-keepkey');
@@ -239,7 +236,13 @@ export const onStartKeepkey = async function () {
       blockchains: allByCaip,
     };
     resultInit = await app.pairWallet(pairObject);
-    console.log(tag, 'resultInit: ', resultInit);
+    console.log(tag, 'result pair wallet: ', resultInit);
+    console.log(tag, 'app.keepkeyApiKey:', app.keepkeyApiKey);
+    console.log(tag, 'keepkeyApiKey:', keepkeyApiKey);
+    if (app.keepkeyApiKey !== keepkeyApiKey) {
+      console.log('SAVING API KEY. ');
+      keepKeyApiKeyStorage.saveApiKey(app.keepkeyApiKey);
+    }
 
     return app;
   } catch (e) {
