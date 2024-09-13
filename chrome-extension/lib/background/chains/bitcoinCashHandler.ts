@@ -38,11 +38,12 @@ export const handleBitcoinCashRequest = async (
       for (let i = 0; i < pubkeys.length; i++) {
         let pubkey = pubkeys[i];
         let address = pubkey.master || pubkey.address;
+        address = 'bitcoincash:' + address;
         accounts.push(address);
       }
       console.log(tag, 'accounts: ', accounts);
-      console.log(tag, method + ' Returning', accounts);
-      return [accounts];
+      console.log(tag, method + ' Returning: ', accounts);
+      return [accounts[0]];
     }
     case 'request_balance': {
       //get sum of all pubkeys configured
