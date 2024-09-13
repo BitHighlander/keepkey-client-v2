@@ -32,10 +32,17 @@ export const handleThorchainRequest = async (
   console.log(tag, 'method:', method);
   switch (method) {
     case 'request_accounts': {
-      let response = await KEEPKEY_WALLET.swapKit.getBalance(Chain.THORChain);
-      console.log(tag, 'response: ', response);
-      console.log(tag, method + ' Returning', response);
-      return [response];
+      let pubkeys = KEEPKEY_WALLET.pubkeys.filter((e: any) => e.networks.includes(ChainToNetworkId[Chain.THORChain]));
+      let accounts = [];
+      for (let i = 0; i < pubkeys.length; i++) {
+        let pubkey = pubkeys[i];
+        let address = pubkey.master || pubkey.address;
+        accounts.push(address);
+      }
+      console.log(tag, 'accounts: ', accounts);
+      console.log(tag, method + ' Returning', accounts);
+      //TODO preference on which account to return
+      return [accounts[0]];
     }
     case 'request_balance': {
       //get sum of all pubkeys configured

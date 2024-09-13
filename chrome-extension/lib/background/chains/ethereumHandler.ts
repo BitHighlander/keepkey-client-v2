@@ -352,10 +352,11 @@ const signTransaction = async (transaction: any, provider: JsonRpcProvider, KEEP
 
     console.log(`${tag} Final input: `, input);
     let wallet = await KEEPKEY_WALLET.swapKit.getWallet(Chain.Ethereum);
-    const output = await wallet.ethSignTransaction(input);
+    console.log('wallet: ', wallet);
+    const output = await wallet.sendTransaction(input);
     console.log(`${tag} Transaction output: `, output);
 
-    return output.serialized;
+    return output;
   } catch (e) {
     console.error(`${tag} Error: `, e);
     throw createProviderRpcError(4000, 'Error signing transaction', e);
@@ -376,7 +377,8 @@ const signTypedData = async (params: any, KEEPKEY_WALLET: any, ADDRESS: string) 
     console.log(tag, '**** payload: ', payload);
 
     let wallet = await KEEPKEY_WALLET.swapKit.getWallet(Chain.Ethereum);
-    const signedMessage = await wallet.ethSignTypedData(payload);
+    console.log('wallet: ', wallet);
+    const signedMessage = await wallet.signTypedData(payload);
     console.log(tag, '**** signedMessage: ', signedMessage);
     return signedMessage.signature;
   } catch (e) {
