@@ -7,19 +7,18 @@ import { JsonRpcProvider } from 'ethers';
 import { Chain } from '@coinmasters/types';
 
 const TAG = ' | background/index.js | ';
-console.log('background script loaded');
+console.log('Background script loaded');
 console.log('Version:', packageJson.version);
 
 const KEEPKEY_STATES = {
   0: 'unknown',
   1: 'disconnected',
   2: 'connected',
-  3: 'busy', // multi-user-action signing can not be interrupted
+  3: 'busy', // multi-user-action signing cannot be interrupted
   4: 'errored',
 };
 let KEEPKEY_STATE = 0;
 
-// Function to update the extension icon based on the theme
 function updateIcon() {
   let iconPath = './icon-128.png';
   if (KEEPKEY_STATE === 2) iconPath = './icon-128-online.png';
@@ -31,9 +30,9 @@ function updateIcon() {
   });
 }
 updateIcon();
-console.log('background loaded');
-console.log("Edit 'chrome-extension/lib/background/index.ts' and save to reload.");
+console.log('Background loaded');
 
+// Define the supported chains and RPC URLs
 const EIP155_CHAINS = {
   'eip155:1': {
     chainId: 1,
@@ -83,7 +82,6 @@ const EIP155_CHAINS = {
     rpc: 'https://mainnet.base.org',
     namespace: 'eip155',
   },
-  //
   'eip155:42161': {
     chainId: 8453,
     name: 'Arbitrum',
@@ -101,19 +99,22 @@ const EIP155_CHAINS = {
     namespace: 'eip155',
   },
 };
+
 const provider = new JsonRpcProvider(EIP155_CHAINS['eip155:1'].rpc);
 
-// Begin KK
+// KeepKey Initialization
 let ADDRESS = '';
 let KEEPKEY_WALLET: any = '';
+
 const onStart = async function () {
   const tag = TAG + ' | onStart | ';
   try {
     console.log(tag, 'Starting...');
-    // Connecting to KeepKey
+    // Connect to KeepKey
     const app = await onStartKeepkey();
     console.log(tag, 'app: ', app);
     const address = await app.swapKit.getAddress(Chain.Ethereum);
+    console.log(tag, 'address: ', address);
     if (address) {
       KEEPKEY_STATE = 2;
       updateIcon();
@@ -125,66 +126,54 @@ const onStart = async function () {
     console.log(tag, '**** keepkey: ', app);
     KEEPKEY_WALLET = app;
     console.log(tag, 'KEEPKEY_WALLET: ', KEEPKEY_WALLET);
+
     // Start listening for approval events
     listenForApproval(KEEPKEY_WALLET, ADDRESS);
 
-    //sync
+    // Sync with KeepKey
     await app.getPubkeys();
     await app.getBalances();
   } catch (e) {
     KEEPKEY_STATE = 4; // errored
     updateIcon();
-    console.error(tag, 'e: ', e);
+    console.error(tag, 'Error:', e);
   }
 };
+
 onStart();
 
-//Poll for keepkey status
-// let checkStatus =
-
-// Listen for messages from the content script
 chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: any) => {
   const tag = TAG + ' | chrome.runtime.onMessage | ';
-  console.log(tag, 'message:', message);
-  console.log(tag, 'message:', message.type);
+  console.log(tag, 'Received message:', message);
 
   if (message.type === 'WALLET_REQUEST') {
-    console.log(tag, 'Background script received WALLET_REQUEST:', message);
-    const { method, params, requestInfo, chain } = message;
-    const { id, siteUrl } = requestInfo;
-    console.log(tag, 'id:', id);
-    //TODO verify siteUrl with whitelist
-    //if new site, popup to approve
-    //if simular to others warn possible phishing
+    console.log(tag, 'Handling WALLET_REQUEST:', message);
 
-    //@TODO spammy false requests?
-    // if(!method) throw Error('invalid request: method is required');
+    // Extract requestInfo from the message
+    const { requestInfo } = message;
+
+    // Now, extract method, params, and chain from requestInfo
+    const { method, params, chain } = requestInfo;
+
+    console.log(tag, 'id:', requestInfo.id);
     console.log(tag, 'chain:', chain);
-    console.log(tag, 'requestInfo:', requestInfo);
     console.log(tag, 'method:', method);
     console.log(tag, 'params:', params);
-    // console.log(tag, 'ADDRESS:', ADDRESS);
 
     if (method) {
       handleWalletRequest(requestInfo, chain, method, params, provider, KEEPKEY_WALLET, ADDRESS)
         .then(result => {
-          console.log(tag, 'RESPONSE: requestInfo.id:', requestInfo.id);
-          let id = requestInfo.id;
-          const receivedResultString = JSON.stringify(result);
-          const receivedResultLength = receivedResultString.length;
-          console.log(tag, '(STEP 2) receivedResultString:', receivedResultString);
-          console.log(tag, '(STEP 2) receivedResultLength:', receivedResultLength);
-          console.log(tag, 'result:', result);
-          sendResponse({ result, id });
+          sendResponse({ result });
         })
         .catch(error => {
-          sendResponse({ error: error.message, id });
+          sendResponse({ error: error.message });
         });
     } else {
-      console.log(tag, 'ignored request: ', message, sender);
+      console.log(tag, 'Invalid WALLET_REQUEST: Missing method');
+      sendResponse({ error: 'Invalid request: missing method' });
     }
 
-    return true; // Indicates that the response is asynchronous
+    return true; // Indicates that the response will be sent asynchronously
   }
 
   if (message.type === 'GET_KEEPKEY_STATE') {
@@ -196,10 +185,9 @@ chrome.runtime.onMessage.addListener((message: any, sender: any, sendResponse: a
     onStart();
     setTimeout(() => {
       sendResponse({ state: KEEPKEY_STATE });
-    }, 15000); // 15000 milliseconds = 15 seconds
+    }, 15000); // 15 seconds delay
     return true;
   }
 
-  // Return false if the message type is not handled
   return false;
 });
