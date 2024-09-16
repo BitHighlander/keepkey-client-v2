@@ -3,6 +3,8 @@ import { JsonRpcProvider } from 'ethers';
 import { Chain } from '@coinmasters/types';
 import { AssetValue } from '@pioneer-platform/helpers';
 import { EIP155_CHAINS } from '../chains';
+// @ts-ignore
+import { ChainToNetworkId, shortListSymbolToCaip } from '@pioneer-platform/pioneer-caip';
 
 interface ProviderRpcError extends Error {
   code: number;
@@ -31,11 +33,17 @@ export const handleLitecoinRequest = async (
   console.log(tag, 'params:', params);
   switch (method) {
     case 'request_accounts': {
-      //Unsigned TX
-      let response = await KEEPKEY_WALLET.swapKit.getAddress(Chain.Litecoin);
-      console.log(tag, 'response: ', response);
-      console.log(tag, method + ' Returning', response);
-      return [response];
+      let pubkeys = KEEPKEY_WALLET.pubkeys.filter((e: any) => e.networks.includes(ChainToNetworkId[Chain.Litecoin]));
+      let accounts = [];
+      for (let i = 0; i < pubkeys.length; i++) {
+        let pubkey = pubkeys[i];
+        let address = pubkey.master || pubkey.address;
+        accounts.push(address);
+      }
+      console.log(tag, 'accounts: ', accounts);
+      console.log(tag, method + ' Returning', accounts);
+      //TODO preference on which account to return
+      return [accounts[0]];
     }
     case 'request_balance': {
       //get sum of all pubkeys configured

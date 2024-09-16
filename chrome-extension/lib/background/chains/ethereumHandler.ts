@@ -388,7 +388,10 @@ const signTypedData = async (params: any, KEEPKEY_WALLET: any, ADDRESS: string) 
 };
 
 const broadcastTransaction = async (signedTx: string, provider: JsonRpcProvider) => {
+  let tag = TAG + ' | broadcastTransaction | ';
   try {
+    console.log(tag, 'Broadcasting transaction: ', signedTx);
+    //@ts-ignore
     const txResponse = await provider.sendTransaction(signedTx);
     console.log('Transaction response:', txResponse);
     await txResponse.wait(); // Wait for transaction confirmation
